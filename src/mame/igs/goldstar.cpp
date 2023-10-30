@@ -811,6 +811,28 @@ void goldstar_state::nfm_map(address_map &map)
 	map(0xfc80, 0xffff).ram();
 }
 
+void goldstar_state::sunspckr_map(address_map &map)
+{
+	map(0x0000, 0xb7ff).rom().nopw();
+
+	map(0xd000, 0xd7ff).ram().w(FUNC(goldstar_state::goldstar_fg_vidram_w)).share("fg_vidram");
+	map(0xd800, 0xdfff).ram().w(FUNC(goldstar_state::goldstar_fg_atrram_w)).share("fg_atrram");
+
+	map(0xe000, 0xe1ff).ram().w(FUNC(goldstar_state::goldstar_reel1_ram_w)).share("reel1_ram");
+	map(0xe200, 0xe3ff).ram().w(FUNC(goldstar_state::goldstar_reel2_ram_w)).share("reel2_ram");
+	map(0xe400, 0xe5ff).ram().w(FUNC(goldstar_state::goldstar_reel3_ram_w)).share("reel3_ram");
+	map(0xe600, 0xe7ff).ram();
+
+	map(0xe800, 0xe87f).ram().share("reel1_scroll");
+	map(0xe880, 0xe9ff).ram();
+	map(0xea00, 0xea7f).ram().share("reel2_scroll");
+	map(0xea80, 0xebff).ram();
+	map(0xec00, 0xec7f).ram().share("reel3_scroll");
+	map(0xec80, 0xefff).ram();
+
+	map(0xf000, 0xf7ff).ram().share("nvram");
+	map(0xf800, 0xffff).ram();
+}
 
 
 void goldstar_state::cm_coincount_w(uint8_t data)
@@ -936,6 +958,20 @@ void goldstar_state::pkrmast_portmap(address_map &map)
 	map(0x29, 0x29).portr("DSW4"); // actually it reads DSW4 and DSW5. Muxed?
 
 	map(0xf0, 0xf0).nopw();    /* Writing 0's and 1's constantly.  Watchdog feeder? */
+}
+
+void goldstar_state::sunspckr_portmap(address_map &map) // TODO: incomplete!
+{
+	map.global_mask(0xff);
+
+	map(0x01, 0x01).w("aysnd", FUNC(ay8910_device::data_w));
+	map(0x02, 0x02).r("aysnd", FUNC(ay8910_device::data_r));
+	map(0x03, 0x03).w("aysnd", FUNC(ay8910_device::address_w));
+	// map(0x10, 0x13) // DSW?
+	map(0x60, 0x60).portr("IN2");
+	map(0x61, 0x61).portr("IN0");
+	map(0x62, 0x62).portr("IN1");
+	map(0x63, 0x63).lr8(NAME([] () -> uint8_t { return 0xff; })); // checks battery level here, among other things
 }
 
 void goldstar_state::cmast91_portmap(address_map &map)
@@ -9727,6 +9763,14 @@ void goldstar_state::crazybonb(machine_config &config)
 	m_maincpu->set_addrmap(AS_OPCODES, &goldstar_state::super972_decrypted_opcodes_map);
 }
 
+void goldstar_state::sunspckr(machine_config &config)
+{
+	crazybonb(config);
+
+	m_maincpu->set_addrmap(AS_PROGRAM, &goldstar_state::sunspckr_map);
+	m_maincpu->set_addrmap(AS_IO, &goldstar_state::sunspckr_portmap);
+}
+
 void unkch_state::megaline(machine_config &config)
 {
 	/* basic machine hardware */
@@ -12791,6 +12835,46 @@ ROM_START( nd8lines )
 	ROM_REGION( 0x300, "proms", 0 )
 	ROM_LOAD( "he82s129.u33", 0x0000, 0x0100, CRC(3d2f1893) SHA1(927916856b25dfd6ded04c26714313bc49f7e220) )
 	ROM_LOAD( "met47s01.u66", 0x0100, 0x0200, BAD_DUMP CRC(78b6701e) SHA1(27b3d47b0a3637d3a92bf535b34d301e5a3aff8c) ) // unidentified chip, read as 82s147 for now, bad dump until it's known if it's the correct equivalent
+ROM_END
+
+/*
+  Hamburger House (햄버거 하우스, Cherry Master Clone). String "DYNA CM-1  V1.01" on program ROM.
+   -1 x LGS Z8400B
+   -1 x Lattice ispLSI 1024 80LJ
+   -3V Battery
+   -2 x D71055C
+   -1 x Jfc 95101
+   -3 banks of 8 DIP switches
+   -12.000 MHz xtal
+*/
+ROM_START( hamhouse )
+	ROM_REGION( 0x10000, "maincpu", 0 )
+	ROM_LOAD( "am27c512.u33",       0x00000, 0x10000, CRC(f4dd12e9) SHA1(b792ee549ecf5e446387cd5c7d78b2fc69b03f33) )
+
+	ROM_REGION( 0x18000, "gfx1", 0 )
+	ROM_LOAD( "5_nmc27c256q.u28",   0x00000, 0x08000, CRC(e54f033e) SHA1(a3ec618109d7f7287c59199888ba92ead6396d1b) )
+	ROM_LOAD( "6_am27c256.u42",     0x08000, 0x08000, CRC(bfdfd613) SHA1(42476ec4b4cd29062fe4a2d8a3789614e7af2fdb) )
+	ROM_LOAD( "7_27c256.u43",       0x10000, 0x08000, CRC(31c419f0) SHA1(7c827af5c208bab0ca143558581a57b0b355a3ad) )
+
+	ROM_REGION( 0x08000, "gfx2", 0 )
+	ROM_LOAD( "1_27c64-20.u10",     0x00000, 0x02000, CRC(c4efc953) SHA1(da24c802d33be377ad6d6a357ed32d5214ca7a3f) )
+	ROM_LOAD( "2_27c256.u11",       0x02000, 0x02000, CRC(fac9fe6c) SHA1(0c55c017957d65121b9cc876d914cca2dec5e94e) ) // BADADDR         --xxxxxxxxxxxxx
+	ROM_IGNORE( 0x6000 )
+	ROM_LOAD( "4_d27128a.u26",      0x06000, 0x02000, CRC(8cf3845e) SHA1(4f672d256548211c48e60ce89718c3c195f187d5) ) // 1ST AND 2ND HALF IDENTICAL
+	ROM_IGNORE( 0x2000 )
+	ROM_LOAD( "3_hy27c64ad-15.u24", 0x04000, 0x02000, CRC(7f9c41db) SHA1(64c5fb779ecc05eae3264c7767c571eb76fb389f) )
+
+	ROM_REGION( 0x10000, "user1", ROMREGION_ERASE00 )
+
+	ROM_REGION( 0x600, "proms", ROMREGION_ERASE00 )
+	// EPROM on a small subboard wired to replace two bipolar PROMS
+	ROM_LOAD( "nm27c256.u55",       0x00000, 0x00400, CRC(f7c7c025) SHA1(f845dc960ed74f64bfff06e3766a1047a26e9de1) )
+	ROM_IGNORE( 0x7c00 )
+	ROM_LOAD( "am27s33pc.u39",      0x00400, 0x00200, NO_DUMP ) // Separated from the other two PROM sockets on the PCB
+
+	ROM_REGION( 0x400, "plds", 0 )
+	ROM_LOAD( "atf16v8b.u15",       0x00000, 0x00117, NO_DUMP )
+	ROM_LOAD( "atf16v8b.u35",       0x00200, 0x00117, NO_DUMP )
 ROM_END
 
 /*
@@ -16503,8 +16587,8 @@ ROM_START( eldoradd ) // String "DYNA ELD3 V5.1DR" on program ROM
 	ROM_LOAD( "2h_el3_tms27c040.2h", 0x080000, 0x080000, CRC(79a37ee1) SHA1(510e4ab168003d48173d5f8ddbf396668caf8e3e) )
 
 	ROM_REGION( 0x200, "proms", 0 )
-	ROM_LOAD( "eh_82s135.15h", 0x000, 0x100, NO_DUMP )
-	ROM_LOAD( "eg_82s135.15g", 0x100, 0x100, NO_DUMP )
+	ROM_LOAD( "eh_82s135.15h", 0x000, 0x100, CRC(bc64fea7) SHA1(7aef1bd14936c8f445a7ce08547e7ab962cea797) )
+	ROM_LOAD( "eg_82s135.15g", 0x100, 0x100, CRC(19214600) SHA1(33a62cd91bf73fa5aa37ab961797b8c5e4ac4e30) )
 
 	ROM_REGION( 0x600, "plds", 0 )
 	ROM_LOAD( "pal16l8.13f", 0x000, 0x104, NO_DUMP )
@@ -16534,14 +16618,18 @@ ROM_START( sunspckr ) // "Suns Pecker" (also known as "Animal House"). Strings "
 	ROM_REGION( 0x10000, "maincpu", 0 )
 	ROM_LOAD16_WORD( "1_am27512.l2", 0x00000, 0x10000, CRC(258208d7) SHA1(11a75963c535636ff1320a3d3c3b9867a1f169d4) )
 
-	ROM_REGION( 0x40000, "gfx", 0 )
+	ROM_REGION( 0x20000, "gfx1", 0 )
 	ROM_LOAD( "2_tms27c010.f6", 0x00000, 0x20000, CRC(8adb2cf7) SHA1(b5ba73e9e1ba9a443b33bd90579b05f143fef91a) )
-	ROM_LOAD( "3_tms27c010.c6", 0x20000, 0x20000, CRC(44a9ae66) SHA1(86db8fdebcb82b9114e16f91f4aaa1f9b733e9ae))
 
-	ROM_REGION( 0x300, "proms", 0 )
+	ROM_REGION( 0x20000, "gfx2", 0 )
+	ROM_LOAD( "3_tms27c010.c6", 0x00000, 0x20000, CRC(44a9ae66) SHA1(86db8fdebcb82b9114e16f91f4aaa1f9b733e9ae))
+
+	ROM_REGION( 0x200, "proms", 0 )
 	ROM_LOAD( "1_82s129.d5", 0x000, 0x100, NO_DUMP )
 	ROM_LOAD( "2_82s129.n6", 0x100, 0x100, NO_DUMP )
-	ROM_LOAD( "3_82s129.m6", 0x200, 0x100, NO_DUMP )
+
+	ROM_REGION( 0x100, "proms2", 0 )
+	ROM_LOAD( "3_82s129.m6", 0x000, 0x100, NO_DUMP )
 
 	// The JEDECs were provided by the arcade PCB shop as "needed for repairs".
 	ROM_REGION( 0x400, "plds", 0 )
@@ -19944,6 +20032,14 @@ void cmaster_state::init_super7() // possibly incomplete decryption. Game appear
 	}
 }
 
+void goldstar_state::init_sunspckr()
+{
+	uint8_t *rom = memregion("maincpu")->base();
+
+	for (int a = 0; a < 0xc000; a++)
+		m_decrypted_opcodes[a] = bitswap<8>(rom[a] ^ 0xff, 2, 3, 0, 1, 6, 7, 4, 5);
+}
+
 
 /*********************************************
 *                Game Drivers                *
@@ -19978,8 +20074,8 @@ GAME(  1994, chryangla, ncb3,     chryangla,ncb3,     cb3_state,      init_chrya
 
 GAME(  1991, eldoradd,  0,        eldoradd, chrygld,  cb3_state,      empty_init,     ROT0, "Dyna",              "El Dorado (V5.1DR)",                          MACHINE_NOT_WORKING) // everything
 GAME(  1991, eldoraddo, eldoradd, eldoradd, chrygld,  cb3_state,      empty_init,     ROT0, "Dyna",              "El Dorado (V1.1TA)",                          MACHINE_NOT_WORKING) // everything
-GAME(  1991, sunspckr,  eldoradd, eldoradd, chrygld,  cb3_state,      empty_init,     ROT0, "Suns Co Ltd.",      "Suns Pecker (V1.0)",                          MACHINE_NOT_WORKING) // everything
 
+GAME(  1991, sunspckr,  0,        sunspckr, cmv4,     goldstar_state, init_sunspckr,  ROT0, "Suns Co Ltd.",      "Animal House (V1.0)",                         MACHINE_NOT_WORKING) // correct GFX decode, I/O, etc
 
 // looks like a hack of Cherry Bonus 3
 GAME(  1994, chryangl,  ncb3,     chryangl, chryangl,  cmaster_state, init_chryangl,  ROT0, "bootleg (G.C.I.)",  "Cherry Angel (set 1)",                                MACHINE_NOT_WORKING ) // SKY SUPERCB 1.0 string, decrypted but hangs when betting
@@ -20018,6 +20114,7 @@ GAME ( 199?, wcat3a,    wcat3,    chryangl, cmaster,  cmaster_state,  init_wcat3
 GAMEL( 199?, ll3,       cmaster,  cm,       cmasterb, cmaster_state,  init_ll3,       ROT0, "bootleg",           "Lucky Line III",                              MACHINE_NOT_WORKING, layout_cmasterb )  // not looked at yet
 GAMEL( 199?, cmfb55,    cmaster,  cmfb55,   cmaster,  cmaster_state,  init_cmfb55,    ROT0, "bootleg",           "Cherry Master (bootleg, Game FB55 Ver.2)",    MACHINE_NOT_WORKING, layout_cmv4 ) // inputs not done
 GAMEL( 1991, srmagic,   cmv4,     cm,       cmv4,     cmaster_state,  empty_init,     ROT0, "bootleg",           "Super Real Magic (V6.3)",                     MACHINE_NOT_WORKING, layout_cmv4 ) // needs correct I/O
+GAMEL( 199?, hamhouse,  cmaster,  cm,       cmaster,  cmaster_state,  init_cmv4,      ROT0, "bootleg",           "Hamburger House",                             MACHINE_NOT_WORKING, layout_cmaster ) // missing PROM dump, I/O
 
 GAMEL( 1991, tonypok,   0,        cm,       tonypok,  cmaster_state,  init_tonypok,   ROT0, "Corsica",           "Poker Master (Tony-Poker V3.A, hack?)",       0 ,                layout_tonypok )
 GAME(  1999, jkrmast,   0,        pkrmast,  pkrmast,  goldstar_state, init_jkrmast,   ROT0, "Pick-A-Party USA",  "Joker Master (V515)",                         MACHINE_NOT_WORKING ) // encryption broken, needs GFX and controls
