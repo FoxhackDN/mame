@@ -3279,10 +3279,15 @@ ROM_START( tisubb )
 ROM_END
 
 /* This bootleg shows year 1989 on title screen, but it's from 1992 (there are 1992 strings on the ROMs). Probably Karam
-   modified the New HUNTer set from Mecca, which also shows 1989, and was legally registered on Korea on 1989-8-25. */
+   modified the New HUNTer set from Mecca, which also shows 1989, and was legally registered on Korea on 1989-8-25.
+   Hardware:
+    - Sound: SM64 + SM64 + 12.000 MHz xtal (currently, the pitch is wrong, you have to overclock ymsnd to 112% to get the same as the PCB).
+    - Five positions for banks of eight DIP switches, but four of them unpopulated (only one present on the PCB).
+    - MCU with its surface scratched out, probably an HD647180X0CP8L + 12.000 MHz xtal.
+    - TI TPC1020AFN-084C.
+    - Unpopulated locations on the PCB for a battery and a reset switch. */
 ROM_START( newhunter )
-	// The MCU had its surface scratched out, but almost sure it's an HD647180X0CP8L
-	ROM_REGION( 0x4000, "maincpu", 0 )
+	ROM_REGION( 0x4000, "maincpu", 0 ) 	// The MCU had its surface scratched out, but almost sure it's an HD647180X0CP8L
 	ROM_LOAD( "hd647180.bin", 0x00000, 0x04000, NO_DUMP )
 	HD647180X_FAKE_INTERNAL_ROM
 
@@ -3311,7 +3316,7 @@ ROM_START( newhunter )
 	ROM_LOAD( "hu-3.bin",     0x00200, 0x00100, CRC(db99f6da) SHA1(d281a2fa06f1890ef0b1c4d099e6828827db14fd) )
 
 	ROM_REGION( 0x00100, "xtraprom", 0 )
-	ROM_LOAD( "82s129.u34",   0x00000, 0x00100, NO_DUMP ) // There's an (undumped) additional PROM near the MCU
+	ROM_LOAD( "82s129.u34",   0x00000, 0x00100, CRC(72d30ca3) SHA1(1054da8e0c18fac8d9fd93cfa441a17df430686b) ) // There's an additional PROM near the MCU
 
 	ROM_REGION( 0x00045c, "plds", 0 )
 	ROM_LOAD( "ht-1.bin",     0x00000, 0x00117, CRC(fdb4cd61) SHA1(f510077b707864b2536942db6157118ca15922de) )
@@ -3365,10 +3370,12 @@ ROM_END
      -One bank of 5 DIP switches soldered to another 74LS245.
      -A single switch button soldered to another 74LS245.
    And the usual hardware configuration:
+     -One 12.000 MHz xtal.
      -HD647180X0CP6.
      -12 MHz xtal.
      -One bank of 8 DIP switches, plus the other two banks described before.
-     -Sound: K-666 + K-664. */
+     -Sound: K-666 + K-664.
+     -TI TPC1020AFN-084C. */
 ROM_START( newhunterc )
 	ROM_REGION( 0x04000, "maincpu", 0 )
 	ROM_LOAD( "hd647180.bin", 0x00000, 0x04000, NO_DUMP ) // HD647180X0CP8L
@@ -4051,6 +4058,10 @@ ROM_END
    One unpopulated location on the PCB (near the sound chips) for another bank of 8 DIP switches, labeled SW0.
    3.6V battery near the HD64180RP6
    No bipolar PROMs on this PCB.
+ Known issues:
+   When setting "Clear Ticket Unit" DIP switch to 100, the game resets after betting 120.
+   Lamps aren't working properly.
+   There's a gray stripe on the title screen that isn't present on the real hardware.
 */
 
 ROM_START( sevenlnd )
@@ -4297,8 +4308,11 @@ GAMEL( 1991, victor5a,    victor5, victor5,    victor5,  subsino_state, init_vic
 GAMEL( 1992, tisub,       0,       tisub,      tisub,    subsino_state, init_tisub,       ROT0, "Subsino",         "Treasure Island (Subsino, set 1)",            0,                   layout_tisub    )
 GAMEL( 1992, tisuba,      tisub,   tisub,      tisub,    subsino_state, init_tisub,       ROT0, "Subsino",         "Treasure Island (Subsino, set 2)",            0,                   layout_tisub    )
 GAMEL( 1992, tisubb,      tisub,   tisub,      tisubb,   subsino_state, init_tisubb,      ROT0, "American Alpha",  "Treasure Island (American Alpha, v3.0N)",     0,                   layout_tisubb   )
-GAMEL( 1992, newhunter,   tisub,   tisub,      tisub,    subsino_state, init_tisubb,      ROT0, "Karam",           "New HUNTer",                                  0,                   layout_tisubb   ) // 1989 on screen, but this bootleg is from 1992
-GAMEL( 1993, newhunterb,  tisub,   newhunterb, tisub,    subsino_state, init_newhunterb,  ROT0, "bootleg",         "New HUNTer (bootleg, set 1)",                 0,                   layout_tisubb   )
+
+// tilemaps, lamps and inputs troubles.
+GAMEL( 1992, newhunter,   tisub,   tisub,      tisub,    subsino_state, init_tisubb,      ROT0, "Karam",           "New HUNTer",                                  MACHINE_IMPERFECT_GRAPHICS | MACHINE_NOT_WORKING, layout_tisubb   ) // 1989 on screen, but this bootleg is from 1992
+GAMEL( 1993, newhunterb,  tisub,   newhunterb, tisub,    subsino_state, init_newhunterb,  ROT0, "bootleg",         "New HUNTer (bootleg, set 1)",                 MACHINE_IMPERFECT_GRAPHICS | MACHINE_NOT_WORKING, layout_tisubb   )
+
 GAMEL( 1993, newhunterc,  tisub,   newhunterb, tisub,    subsino_state, init_newhunterc,  ROT0, "bootleg",         "New HUNTer (bootleg, set 2)",                 MACHINE_NOT_WORKING, layout_tisubb   ) // 1989 on screen, but "Copyright 1993 SubSino Corp. Taipei, Taiwan." on program ROM
 
 GAMEL( 1991, crsbingo,    0,       crsbingo,   crsbingo, subsino_state, init_crsbingo,    ROT0, "Subsino",         "Poker Carnival",                              0,                   layout_crsbingo )
@@ -4311,7 +4325,7 @@ GAMEL( 1995, stisub,      stbsub,  stbsub,     stbsub,   subsino_state, init_sti
 GAMEL( 1995, tesorone,    stbsub,  stbsub,     tesorone, subsino_state, init_tesorone,    ROT0, "Subsino",         "Tesorone Dell'Isola (Italy, v2.41)",          0,                   layout_stisub   )
 GAMEL( 1995, tesorone240, stbsub,  stbsub,     tesorone, subsino_state, init_tesorone,    ROT0, "Subsino",         "Tesorone Dell'Isola (Italy, v2.40)",          0,                   layout_stisub   )
 GAMEL( 1995, tesorone230, stbsub,  stbsub,     tesorone, subsino_state, init_tesorone230, ROT0, "Subsino",         "Tesorone Dell'Isola (Italy, v2.30)",          0,                   layout_stisub   )
-GAMEL( 1995, sevenlnd,    stbsub,  mtrainnv,   stbsub,   subsino_state, init_mtrainnv,    ROT0, "bootleg",         "Seven Land",                                  0,                   layout_stisub   )
+GAMEL( 1995, sevenlnd,    stbsub,  mtrainnv,   stbsub,   subsino_state, init_mtrainnv,    ROT0, "bootleg",         "Seven Land",                                  MACHINE_IMPERFECT_GRAPHICS | MACHINE_NOT_WORKING, layout_stisub   )
 
 GAMEL( 1996, sharkpy,     0,       sharkpy,    sharkpy,  subsino_state, init_sharkpy,     ROT0, "Subsino",         "Shark Party (Italy, v1.3)",                   0,                   layout_sharkpy  ) // missing POST messages?
 GAMEL( 1996, sharkpya,    sharkpy, sharkpy,    sharkpy,  subsino_state, init_sharkpy,     ROT0, "Subsino",         "Shark Party (Italy, v1.6)",                   0,                   layout_sharkpy  ) // missing POST messages?
