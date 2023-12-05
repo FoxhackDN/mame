@@ -379,6 +379,18 @@ end
 
 ---------------------------------------------------
 --
+--@src/devices/machine/6883sam.h,MACHINES["6883SAM"] = true
+---------------------------------------------------
+
+if (MACHINES["6883SAM"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/machine/6883sam.cpp",
+		MAME_DIR .. "src/devices/machine/6883sam.h",
+	}
+end
+
+---------------------------------------------------
+--
 --@src/devices/machine/68153bim.h,MACHINES["BIM68153"] = true
 ---------------------------------------------------
 
@@ -2642,6 +2654,18 @@ end
 
 ---------------------------------------------------
 --
+--@src/devices/machine/msm6200.h,MACHINES["MSM6200"] = true
+---------------------------------------------------
+
+if (MACHINES["MSM6200"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/machine/msm6200.cpp",
+		MAME_DIR .. "src/devices/machine/msm6200.h",
+	}
+end
+
+---------------------------------------------------
+--
 --@src/devices/machine/msm6242.h,MACHINES["MSM6242"] = true
 ---------------------------------------------------
 
@@ -2945,6 +2969,18 @@ end
 
 ---------------------------------------------------
 --
+--@src/devices/machine/psion_condor.h,MACHINES["PSION_CONDOR"] = true
+---------------------------------------------------
+
+if (MACHINES["PSION_CONDOR"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/machine/psion_condor.cpp",
+		MAME_DIR .. "src/devices/machine/psion_condor.h",
+	}
+end
+
+---------------------------------------------------
+--
 --@src/devices/machine/psion_ssd.h,MACHINES["PSION_SSD"] = true
 ---------------------------------------------------
 
@@ -2964,7 +3000,6 @@ if (MACHINES["PXA255"]~=null) then
 	files {
 		MAME_DIR .. "src/devices/machine/pxa255.cpp",
 		MAME_DIR .. "src/devices/machine/pxa255.h",
-		MAME_DIR .. "src/devices/machine/pxa255defs.h",
 	}
 end
 
@@ -3308,18 +3343,6 @@ if (MACHINES["SENSORBOARD"]~=null) then
 	files {
 		MAME_DIR .. "src/devices/machine/sensorboard.cpp",
 		MAME_DIR .. "src/devices/machine/sensorboard.h",
-	}
-end
-
----------------------------------------------------
---
---@src/devices/machine/serflash.h,MACHINES["SERFLASH"] = true
----------------------------------------------------
-
-if (MACHINES["SERFLASH"]~=null) then
-	files {
-		MAME_DIR .. "src/devices/machine/serflash.cpp",
-		MAME_DIR .. "src/devices/machine/serflash.h",
 	}
 end
 
