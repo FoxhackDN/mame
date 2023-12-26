@@ -891,6 +891,8 @@ if CPUS["SH"] then
 		MAME_DIR .. "src/devices/cpu/sh/sh7021.h",
 		MAME_DIR .. "src/devices/cpu/sh/sh7032.cpp",
 		MAME_DIR .. "src/devices/cpu/sh/sh7032.h",
+		MAME_DIR .. "src/devices/cpu/sh/sh7042.cpp",
+		MAME_DIR .. "src/devices/cpu/sh/sh7042.h",
 		MAME_DIR .. "src/devices/cpu/sh/sh7604_bus.cpp",
 		MAME_DIR .. "src/devices/cpu/sh/sh7604_bus.h",
 		MAME_DIR .. "src/devices/cpu/sh/sh7604_sci.cpp",
@@ -3919,10 +3921,14 @@ if CPUS["XTENSA"] then
 	files {
 		MAME_DIR .. "src/devices/cpu/xtensa/xtensa.cpp",
 		MAME_DIR .. "src/devices/cpu/xtensa/xtensa.h",
+		MAME_DIR .. "src/devices/cpu/xtensa/xtensa_helper.cpp",
+		MAME_DIR .. "src/devices/cpu/xtensa/xtensa_helper.h",
 	}
 end
 
 if opt_tool(CPUS, "XTENSA") then
 	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/xtensa/xtensad.cpp")
 	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/xtensa/xtensad.h")
+	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/xtensa/xtensa_helper.cpp")
+	table.insert(disasm_files , MAME_DIR .. "src/devices/cpu/xtensa/xtensa_helper.h")
 end
