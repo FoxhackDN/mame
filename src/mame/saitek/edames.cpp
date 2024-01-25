@@ -18,6 +18,7 @@ piece from the board, but it doesn't matter.
 Two versions were sold, each should have the same MCU and ROM: a tabletop model
 (Electronic Dames, 8MHz or 12MHz), and a portable model (Compact Dames Computer,
 8MHz). As with SciSys/Saitek chess computers, they were also licensed to Tandy.
+The program engine is DIOS by Eric van Riet Paap.
 
 According to the second hand market, the tabletop French version is much more
 common than the English one. The manual and a LED label incorrectly call crowned
@@ -26,7 +27,7 @@ men queens instead of kings, perhaps due to a translation from French (dame).
 Hardware notes (Compact Dames Computer):
 - PCB label: DH1-PE-009 REV.1
 - Hitachi HD6301Y0P MCU, 8MHz or 12MHz (LC osc, no XTAL)
-- 20+8 LEDs, buttons sensor board, piezo
+- 20+8 LEDs, 5*10 buttons sensor board, piezo
 
 *******************************************************************************/
 
@@ -202,7 +203,7 @@ void edames_state::p7_w(u8 data)
 	update_display();
 
 	// P74: speaker out
-	m_dac->write(BIT(data, 4));
+	m_dac->write(BIT(~data, 4));
 }
 
 
@@ -235,8 +236,8 @@ static INPUT_PORTS_START( edames ) // see comments for French version labels
 
 	PORT_START("IN.3")
 	PORT_CONFNAME( 0x03, 0x02, "CPU Frequency" ) PORT_CHANGED_MEMBER(DEVICE_SELF, edames_state, change_cpu_freq, 0) // factory set
-	PORT_CONFSETTING(    0x02, "8MHz" )
-	PORT_CONFSETTING(    0x00, "12MHz" )
+	PORT_CONFSETTING(    0x02, "8MHz (original)" )
+	PORT_CONFSETTING(    0x00, "12MHz (newer)" )
 	PORT_BIT(0x04, IP_ACTIVE_LOW, IPT_KEYPAD) PORT_CODE(KEYCODE_T) PORT_NAME("Swap Side")   // Tourne Damier
 
 	PORT_START("RESET")

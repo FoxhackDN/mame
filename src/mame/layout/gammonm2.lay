@@ -1,8 +1,11 @@
 <?xml version="1.0"?>
 <!--
 license:CC0-1.0
+authors:hap
 -->
 <mamelayout version="2">
+
+<!-- NOTE: no backgammon pieces simulation here -->
 
 <!-- define elements -->
 

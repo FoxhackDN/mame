@@ -14,10 +14,10 @@ hardware button that disconnects the battery), there is no known method to
 force a cold boot. So if NVRAM somehow becomes broken, remove the NVRAM files.
 
 They called the expansion capability "OSA", for "Open Systems Architecture".
-A serial port for linking to a PC, and a parallel port for expansion modules.
-The expansion modules are basically entire chesscomputers, making the whole
-thing combined a 'dual brain' chesscomputer. The embedded chess engine is by
-Julio Kaplan and Craig Barnes, same as the one in SciSys Turbo S-24K.
+A serial port for linking to a PC or homecomputer, and a parallel port for
+expansion modules. The expansion modules are basically entire chesscomputers,
+making the whole thing combined a 'dual brain' chesscomputer. The embedded chess
+engine is by Julio Kaplan and Craig Barnes, same as the one in Turbo S-24K.
 
 OSA serial link transmission format: 1 start bit, 8 data bits, 1 stop bit, no
 parity. The default baudrate is 1200. To establish a connection, command "o" must
@@ -26,7 +26,7 @@ be entered first (from eg. a terminal), and then the Comm. LED will turn on.
 Hardware notes:
 
 Leonardo (1986):
-- 6301Y0 MCU @ 12MHz
+- HD6301Y0P MCU @ 12MHz
 - 32KB ROM(27C256)
 - 8KB RAM(M5M5165P-15 or compatible)
 - magnet sensors chessboard with 16 leds
@@ -34,7 +34,7 @@ Leonardo (1986):
 The 6301Y0 was seen with internal maskrom serial A96 and B40. It is actually
 one from another SciSys chesscomputer (Turbo 16K or Turbo S-24K). It appears to
 be running in mode 1 (expanded mode): the internal ROM is disabled and the MCU
-can be emulated as if it's a HD6303Y.
+can be emulated as if it's a 6303Y.
 
 Galileo (1988):
 - HD6303YP MCU @ 12MHz
