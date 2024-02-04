@@ -8,10 +8,13 @@ Saitek Electronic Champion Backgammon
 NOTE: Before exiting MAME, change the power switch from GO to STOP. Otherwise,
 NVRAM won't save properly.
 
+This program got 3rd place in the first Computer Olympiad in 1989 (backgammon
+category). It also includes several game variations like Jacquet or Trictrac.
+
 MAME's sensorboard interface is a bit different compared to chess. Pieces can be
-stacked up to 3. Pressing the Bear Off key (Del / Backspace) will also remove the
-currently held piece. Capturing pieces is disabled, except when hitting a blot,
-in which case the captured piece is held.
+stacked up to 3. Pressing the Bear Off button (Del / Backspace) will optionally
+remove the currently held piece. Capturing pieces is disabled, except when hitting
+a blot, in which case the piece in hand is swapped with the one on the board.
 
 Hardware notes:
 - PCB label: GT4-PE-009
@@ -71,7 +74,7 @@ private:
 	required_device<pwm_display_device> m_lcd_pwm;
 	required_device<pwm_display_device> m_led_pwm;
 	required_device<dac_bit_interface> m_dac;
-	required_ioport_array<5> m_inputs;
+	required_ioport_array<6> m_inputs;
 	output_finder<2, 24> m_out_lcd;
 
 	bool m_power = false;
@@ -200,18 +203,19 @@ void ecbackg_state::board_init_cb(int state)
 		init_backgammon();
 }
 
-INPUT_CHANGED_MEMBER(ecbackg_state::bear_off)
-{
-	if (newval)
-	{
-		board_remove_cb();
-		m_board->refresh();
-	}
-}
-
 u8 ecbackg_state::board_spawn_cb(offs_t offset)
 {
 	return (offset == 1) ? 1 : 4;
+}
+
+INPUT_CHANGED_MEMBER(ecbackg_state::bear_off)
+{
+	if (newval && m_inputs[5]->read() & 1)
+	{
+		// remove piece when Bear Off button is pressed
+		board_remove_cb();
+		m_board->refresh();
+	}
 }
 
 u8 ecbackg_state::board_remove_cb()
@@ -459,6 +463,11 @@ static INPUT_PORTS_START( ecbackg )
 
 	PORT_START("IN.4")
 	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_N) PORT_NAME("New Game")
+
+	PORT_START("IN.5")
+	PORT_CONFNAME( 0x01, 0x01, "Remove Piece on Bear Off" )
+	PORT_CONFSETTING(    0x00, DEF_STR( No ) )
+	PORT_CONFSETTING(    0x01, DEF_STR( Yes ) )
 
 	PORT_START("POWER") // needs to be triggered for nvram to work
 	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_OTHER) PORT_CODE(KEYCODE_F1) PORT_CHANGED_MEMBER(DEVICE_SELF, ecbackg_state, power_off, 0) PORT_NAME("Stop")

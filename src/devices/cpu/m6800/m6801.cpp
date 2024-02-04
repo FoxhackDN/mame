@@ -1571,28 +1571,27 @@ bool hd6301_cpu_device::nvram_write(util::write_stream &file)
 	if (!m6801_cpu_device::nvram_write(file))
 		return false;
 
-	// skip if it's currently not battery-backed
-	if (m_nvram_battery)
-	{
-		size_t actual;
-		uint8_t buf[7];
+	size_t actual;
+	std::vector<uint8_t> buf(7);
 
-		// misc registers
-		buf[0] = m_s.b.h;
-		buf[1] = m_s.b.l;
-		buf[2] = m_x.b.h;
-		buf[3] = m_x.b.l;
-		buf[4] = m_d.b.h;
-		buf[5] = m_d.b.l;
-		buf[6] = m_tdr;
+	// misc registers
+	buf[0] = m_s.b.h;
+	buf[1] = m_s.b.l;
+	buf[2] = m_x.b.h;
+	buf[3] = m_x.b.l;
+	buf[4] = m_d.b.h;
+	buf[5] = m_d.b.l;
+	buf[6] = m_tdr;
 
-		if (file.write(&buf, sizeof(buf), actual) || (sizeof(buf) != actual))
-			return false;
+	// port output latches
+	buf.insert(buf.end(), m_port_data, m_port_data + sizeof(m_port_data));
 
-		// port output latches
-		if (file.write(&m_port_data[0], sizeof(m_port_data), actual) || sizeof(m_port_data) != actual)
-			return false;
-	}
+	// zerofill if it's currently not battery-backed
+	if (!m_nvram_battery)
+		std::fill(buf.begin(), buf.end(), 0);
+
+	if (file.write(buf.data(), buf.size(), actual) || (buf.size() != actual))
+		return false;
 
 	return true;
 }
@@ -1602,15 +1601,18 @@ bool hd6301x_cpu_device::nvram_write(util::write_stream &file)
 	if (!hd6301_cpu_device::nvram_write(file))
 		return false;
 
-	// skip if it's currently not battery-backed
-	if (m_nvram_battery)
-	{
-		size_t actual;
+	size_t actual;
+	std::vector<uint8_t> buf;
 
-		// port output latches
-		if (file.write(&m_portx_data[0], sizeof(m_portx_data), actual) || sizeof(m_portx_data) != actual)
-			return false;
-	}
+	// port output latches
+	buf.insert(buf.begin(), m_portx_data, m_portx_data + sizeof(m_portx_data));
+
+	// zerofill if it's currently not battery-backed
+	if (!m_nvram_battery)
+		std::fill(buf.begin(), buf.end(), 0);
+
+	if (file.write(buf.data(), buf.size(), actual) || (buf.size() != actual))
+		return false;
 
 	return true;
 }
@@ -1940,8 +1942,15 @@ void hd6301y_cpu_device::p5_ddr_w(uint8_t data)
 
 uint8_t hd6301x_cpu_device::p5_data_r()
 {
-	// read-only
-	return m_in_portx_func[0]();
+	uint8_t data = m_in_portx_func[0]();
+
+	if (m_irq_state[HD6301_IRQ1_LINE])
+		data &= 0xfe;
+	if (m_irq_state[HD6301_IRQ2_LINE])
+		data &= 0xfd;
+
+	// no DDR, read-only
+	return data;
 }
 
 uint8_t hd6301y_cpu_device::p5_data_r()
@@ -1949,7 +1958,14 @@ uint8_t hd6301y_cpu_device::p5_data_r()
 	if (m_portx_ddr[0] == 0xff)
 		return m_portx_data[0];
 	else
-		return ((m_in_portx_func[0]() | ((m_irq_state[M6801_IS3_LINE]) ? 0x10 : 0)) & (m_portx_ddr[0] ^ 0xff)) | (m_portx_data[0] & m_portx_ddr[0]);
+	{
+		uint8_t data = hd6301x_cpu_device::p5_data_r();
+
+		if (m_irq_state[M6801_IS3_LINE])
+			data |= 0x10;
+
+		return (data & (m_portx_ddr[0] ^ 0xff)) | (m_portx_data[0] & m_portx_ddr[0]);
+	}
 }
 
 void hd6301y_cpu_device::p5_data_w(uint8_t data)
