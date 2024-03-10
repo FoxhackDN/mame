@@ -50,8 +50,8 @@ public:
 		driver_device(mconfig, type, tag),
 		m_maincpu(*this, "maincpu"),
 		m_board(*this, "board"),
-		m_lcd_pwm(*this, "lcd_pwm"),
 		m_led_pwm(*this, "led_pwm"),
+		m_lcd_pwm(*this, "lcd_pwm"),
 		m_dac(*this, "dac"),
 		m_inputs(*this, "IN.%u", 0),
 		m_out_lcd(*this, "s%u.%u", 0U, 0U)
@@ -71,8 +71,8 @@ private:
 	// devices/pointers
 	required_device<hd6301y0_cpu_device> m_maincpu;
 	required_device<sensorboard_device> m_board;
-	required_device<pwm_display_device> m_lcd_pwm;
 	required_device<pwm_display_device> m_led_pwm;
+	required_device<pwm_display_device> m_lcd_pwm;
 	required_device<dac_bit_interface> m_dac;
 	required_ioport_array<6> m_inputs;
 	output_finder<2, 24> m_out_lcd;
@@ -446,7 +446,7 @@ static INPUT_PORTS_START( ecbackg )
 	PORT_START("IN.2")
 	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_D) PORT_CODE(KEYCODE_A) PORT_NAME("Double / Accept")
 	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_J) PORT_NAME("Reject")
-	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_Y) PORT_NAME("Play")
+	PORT_BIT(0x04, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_P) PORT_NAME("Play")
 	PORT_BIT(0x08, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_O) PORT_NAME("Game Option")
 	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_L) PORT_NAME("Level")
 	PORT_BIT(0x20, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_T) PORT_NAME("Take Back")
