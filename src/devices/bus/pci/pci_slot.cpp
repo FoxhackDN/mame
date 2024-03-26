@@ -22,6 +22,7 @@
 #include "rivatnt.h"
 #include "rtl8029as_pci.h"
 #include "rtl8139_pci.h"
+#include "sis6326.h"
 #include "sonicvibes.h"
 #include "sw1000xg.h"
 #include "virge_pci.h"
@@ -108,7 +109,7 @@ void pci_card_device::irq_pin_w(offs_t line, int state)
 void pci_cards(device_slot_interface &device)
 {
 	// 0x00 - backward compatible pre-class code
-//	device.option_add("voodoo1",        VOODOO_1_PCI);
+//  device.option_add("voodoo1",        VOODOO_1_PCI);
 	device.option_add("vision864",      VISION864_PCI);
 	device.option_add("vision964",      VISION964_PCI);
 
@@ -171,5 +172,6 @@ void agp_cards(device_slot_interface &device)
 	device.option_add("geforce256",     GEFORCE256);
 	device.option_add("geforce256_ddr", GEFORCE256_DDR);
 	device.option_add("quadro",         QUADRO);
-	device.option_add("laguna3d",       CIRRUS_GD5465_LAGUNA3D);
+	device.option_add("laguna3d",       GD5465_LAGUNA3D);
+	device.option_add("sis6326_agp",    SIS6326_AGP);
 }
