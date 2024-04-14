@@ -316,9 +316,6 @@ static INPUT_PORTS_START( chessac )
 	PORT_START("IN.2")
 	PORT_BIT(0x10, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_G) PORT_CHANGED_MEMBER(DEVICE_SELF, chessac_state, go_button, 0) PORT_NAME("Go / Stop")
 	PORT_BIT(0xef, IP_ACTIVE_HIGH, IPT_UNUSED)
-
-	PORT_START("CLICKABLE") // helper for clickable artwork
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_OTHER)
 INPUT_PORTS_END
 
 
@@ -414,5 +411,5 @@ ROM_END
 *******************************************************************************/
 
 //    YEAR  NAME      PARENT   COMPAT  MACHINE   INPUT    CLASS          INIT        COMPANY, FULLNAME, FLAGS
-SYST( 1997, chessac,  0,       0,      chessac,  chessac, chessac_state, empty_init, "Saitek", "Kasparov Chess Academy", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
-SYST( 1997, schachak, chessac, 0,      schachak, chessac, chessac_state, empty_init, "Saitek", "Mephisto Schachakademie", MACHINE_SUPPORTS_SAVE | MACHINE_CLICKABLE_ARTWORK )
+SYST( 1997, chessac,  0,       0,      chessac,  chessac, chessac_state, empty_init, "Saitek", "Kasparov Chess Academy", MACHINE_SUPPORTS_SAVE )
+SYST( 1997, schachak, chessac, 0,      schachak, chessac, chessac_state, empty_init, "Saitek", "Mephisto Schachakademie", MACHINE_SUPPORTS_SAVE )
