@@ -5354,3 +5354,25 @@ if (MACHINES["UPD7261"]~=null) then
 		MAME_DIR .. "src/devices/machine/upd7261.h",
 	}
 end
+
+---------------------------------------------------
+--
+--@src/devices/machine/cat702.h,MACHINES["CAT702"] = true
+---------------------------------------------------
+if (MACHINES["CAT702"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/machine/cat702.cpp",
+		MAME_DIR .. "src/devices/machine/cat702.h",
+	}
+end
+
+---------------------------------------------------
+--
+--@src/devices/machine/sci4.h,MACHINES["SCI4"] = true
+---------------------------------------------------
+if (MACHINES["SCI4"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/machine/sci4.cpp",
+		MAME_DIR .. "src/devices/machine/sci4.h",
+	}
+end
