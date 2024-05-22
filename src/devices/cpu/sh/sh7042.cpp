@@ -356,11 +356,6 @@ void sh7042_device::device_add_mconfig(machine_config &config)
 
 }
 
-void sh7042_device::do_sci_w(int sci, int state)
-{
-	logerror("sci %d %d\n", sci, state);
-}
-
 void sh7042_device::internal_update()
 {
 	internal_update(current_cycles());
@@ -402,6 +397,8 @@ void sh7042_device::internal_update(u64 current_time)
 	add_event(event_time, m_mtu2->internal_update(current_time));
 	add_event(event_time, m_mtu3->internal_update(current_time));
 	add_event(event_time, m_mtu4->internal_update(current_time));
+	add_event(event_time, m_sci[0]->internal_update(current_time));
+	add_event(event_time, m_sci[1]->internal_update(current_time));
 
 	recompute_timer(event_time);
 }
