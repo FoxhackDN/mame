@@ -1406,6 +1406,7 @@ a2600_pop                       // Atari 2600 Point of Purchase Display
 stvboy
 tvboy                           //
 tvboyii                         //
+tvboyn                          //
 
 @source:atari/a7800.cpp
 a7800                           // Atari 7800 NTSC
@@ -16779,6 +16780,7 @@ ffantasyb                       // EX (c) 1989 Data East Corporation (World)
 ffantasybl                      // bootleg
 hbarrel                         // EC (c) 1987 Data East Corporation (World)
 hbarrelu                        // (c) 1987 Data East USA (US)
+hbarrelua                       // (c) 1987 Data East USA (US)
 hippodrm                        // EW (c) 1989 Data East USA (US)
 mastbond                        // bootleg
 midres                          // (c) 1989 Data East Corporation (World)
@@ -18084,15 +18086,13 @@ fpresbu                         //
 fpresgla                        //
 
 @source:fidelity/excel.cpp
-fdes2000                        //
-fdes2100                        //
 fexcel                          //
 fexcel12                        //
-fexcel124                       //
+fexcel12a                       //
 fexcela                         //
 fexceld                         //
 fexcelp                         //
-fexcelpb                        //
+fexcelpa                        //
 fexcelv                         //
 granits                         // RCS
 
@@ -18108,8 +18108,9 @@ fscc12                          //
 fscc12a                         //
 
 @source:fidelity/sc6.cpp
-fscc6                           //
-gambit
+classic
+fscc6
+gambitv
 miniscc
 
 @source:fidelity/sc8.cpp
@@ -19325,6 +19326,7 @@ mathmagi                        // APF
 mathmarv                        // Texas Instruments
 mbdtower                        // Milton Bradley
 mdndclab                        // Mattel
+mega10k                         // Nathan
 merlin                          // Parker Bros
 mmarvin                         // Entex
 mmerlin                         // Parker Bros
@@ -19952,6 +19954,7 @@ dunhuang                        // (c) 1995
 
 @source:igs/funtech.cpp
 fts2in1
+poker21
 
 @source:igs/goldstar.cpp
 3cdpoker                        // hack?
@@ -20227,6 +20230,7 @@ jking02                         // (c) 200?
 klxyj                           // (c) 200?
 lhzb3                           // (c) 200?
 lhzb4                           // (c) 200?
+lthy                            // (c) 1999
 luckycrs                        // (c) 200?
 mgcs3                           // (c) 200?
 mgfx                            // (c) 200?
@@ -30876,6 +30880,9 @@ f15se22                         // (c) 1991 Microprose Games Inc.
 stankatk                        // (c) 1992 Microprose Games Inc.
 tankbatl                        // (c) 1992 Microprose Games Inc.
 
+@source:misc/microbox2.cpp
+microbx2                        // 1984 Microbox II
+
 @source:misc/microdar.cpp
 cfarwest                        // (c) 1997 Compumatic
 covidarts                       // (c) 1997 Covielsa
@@ -32174,6 +32181,7 @@ twinbskt                        // (c) 1995 Recreativos Pasqual
 @source:misc/umipoker.cpp
 saiyukip                        //
 umipoker                        //
+umipokera                       //
 
 @source:misc/unkgolf.cpp
 unkgolf
@@ -34992,7 +35000,9 @@ trocana                         // NTC / NMK
 
 @source:nmk/quizdna.cpp
 gakupara                        // (c) 1991 NMK
+gakupara102                     // (c) 1991 NMK
 gekiretu                        // (c) 1992 Face
+gekiretup                       // (c) 1992 Face
 quizdna                         // (c) 1992 Face
 
 @source:nmk/quizpani.cpp
@@ -35070,7 +35080,8 @@ diablo68
 diablo68a
 scorpio68
 
-@source:novag/diamond2.cpp
+@source:novag/diamond.cpp
+diamond
 diamond2
 
 @source:novag/emerclp.cpp
@@ -38991,6 +39002,7 @@ mbc200                          //
 phc20                           // Sanyo PHC-20
 
 @source:sanyo/phc25.cpp
+map1010                         // Seiko MAP-1010
 phc25                           // Sanyo PHC-25 (Europe)
 phc25j                          // Sanyo PHC-25 (Japan)
 
@@ -42515,6 +42527,9 @@ vp415                           // (c) 1983 Philips
 @source:skeleton/webtouchone.cpp
 wto2840sp                       //
 
+@source:skeleton/whtm68k.cpp
+unkwht
+
 @source:skeleton/xbase09.cpp
 xbase09                         //
 
@@ -45048,6 +45063,9 @@ emma2                           // 1979 L.J.Technical Systems
 @source:trainer/instruct.cpp
 instruct                        //
 
+@source:trainer/mcg85.cpp
+mcg85                           //
+
 @source:trainer/mk14.cpp
 mk14                            //
 mk14vdu                         //
@@ -45351,6 +45369,7 @@ doraphon                        // (c) 2006 VTech
 doraphonf
 doyousud
 dreamlss
+drumsups
 fordrace
 gssytts
 guitarfv
@@ -45643,6 +45662,7 @@ domfitad                        //
 dombikec                        //
 
 @source:tvgames/xavix_2000.cpp
+duelmast                        //
 epo_ebox                        //
 epo_bowl                        //
 epo_sdb                         //
