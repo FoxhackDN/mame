@@ -1,11 +1,15 @@
 // license:BSD-3-Clause
 // copyright-holders:David Haywood, XingXing
 
+// default bookkeeping passwords
+// fearless 1234
+// superkds (unknown)
+
 #include "emu.h"
 
+#include "igs027a.h"
 #include "pgmcrypt.h"
 
-#include "cpu/arm7/arm7.h"
 #include "cpu/arm7/arm7core.h"
 #include "cpu/xa/xa.h"
 #include "machine/nvram.h"
@@ -17,9 +21,12 @@
 #include "screen.h"
 #include "speaker.h"
 
+#include <algorithm>
+
 #define LOG_DEBUG       (1U << 1)
 #define VERBOSE         (0)
 #include "logmacro.h"
+
 
 namespace {
 
@@ -28,32 +35,35 @@ class igs_fear_state : public driver_device
 public:
 	igs_fear_state(const machine_config &mconfig, device_type type, const char *tag) :
 		driver_device(mconfig, type, tag),
+		m_external_rom(*this, "user1"),
+		m_gfxrom(*this, "gfx1"),
+		m_sram(*this, "sram"),
+		m_videoram(*this, "videoram"),
 		m_maincpu(*this, "maincpu"),
 		m_xa(*this, "xa"),
 		m_ics(*this, "ics"),
 		m_screen(*this, "screen"),
-		m_videoram(*this, "videoram"),
 		m_palette(*this, "palette"),
-		m_gfxrom(*this, "gfx1"),
 		m_ticket(*this, "ticket"),
 		m_io_dsw(*this, "DSW%u", 1U),
 		m_io_trackball(*this, "AN%u", 0)
 	{ }
 
-	void igs_fear(machine_config &config);
+	void igs_fear(machine_config &config) ATTR_COLD;
+	void igs_fear_xor(machine_config &config) ATTR_COLD;
 
-	void init_igs_fear();
-	void init_igs_icescape();
-	void init_igs_superkds();
+	void init_igs_fear() ATTR_COLD;
+	void init_igs_icescape() ATTR_COLD;
+	void init_igs_superkds() ATTR_COLD;
 
 protected:
-	virtual void video_start() override;
-
-	virtual void machine_start() override;
-	virtual void machine_reset() override;
+	virtual void machine_start() override ATTR_COLD;
+	virtual void machine_reset() override ATTR_COLD;
+	virtual void video_start() override ATTR_COLD;
 
 private:
-	void main_map(address_map &map);
+	void main_map(address_map &map) ATTR_COLD;
+	void main_xor_map(address_map &map) ATTR_COLD;
 
 	void sound_irq(int state);
 	void vblank_irq(int state);
@@ -62,16 +72,12 @@ private:
 
 	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 
+	u32 external_rom_r(offs_t offset);
+
+	void xor_table_w(offs_t offset, u8 data);
+
 	u32 igs027_gpio_r(offs_t offset, u32 mem_mask);
 	void igs027_gpio_w(offs_t offset, u32 data, u32 mem_mask);
-
-	TIMER_CALLBACK_MEMBER(igs027_timer0);
-	TIMER_CALLBACK_MEMBER(igs027_timer1);
-
-	void igs027_periph_init(void);
-	void igs027_trigger_irq(int num);
-	u32 igs027_periph_r(offs_t offset, u32 mem_mask);
-	void igs027_periph_w(offs_t offset, u32 data, u32 mem_mask);
 
 	u32 xa_r(offs_t offset, u32 mem_mask);
 	void xa_w(offs_t offset, u32 data, u32 mem_mask);
@@ -88,12 +94,28 @@ private:
 
 	u16 xa_wait_r(offs_t offset);
 
+	required_region_ptr<u32> m_external_rom;
+	required_region_ptr<u8> m_gfxrom;
+	required_shared_ptr<uint32_t> m_sram;
+	required_shared_ptr<u32> m_videoram;
+
+	required_device<igs027a_cpu_device> m_maincpu;
+	required_device<mx10exa_cpu_device> m_xa;
+	required_device<ics2115_device> m_ics;
+	required_device<screen_device> m_screen;
+	required_device<palette_device> m_palette;
+
+	required_device<ticket_dispenser_device> m_ticket;
+
+	required_ioport_array<2> m_io_dsw;
+	optional_ioport_array<2> m_io_trackball;
+
+	u32 m_xor_table[0x100];
+
 	u8 m_port2_latch;
 	u8 m_port0_latch;
 
 	u32 m_gpio_o;
-	u32 m_irq_enable;
-	u32 m_irq_pending;
 
 	u32 m_xa_cmd;
 	u32 m_xa_ret0;
@@ -107,38 +129,23 @@ private:
 
 	int m_trackball_cnt;
 	int m_trackball_axis[2], m_trackball_axis_pre[2], m_trackball_axis_diff[2];
-
-	emu_timer *m_timer0;
-	emu_timer *m_timer1;
-
-	// devices
-	required_device<cpu_device> m_maincpu;
-	required_device<mx10exa_cpu_device> m_xa;
-	required_device<ics2115_device> m_ics;
-	required_device<screen_device> m_screen;
-	required_shared_ptr<u32> m_videoram;
-	required_device<palette_device> m_palette;
-	required_region_ptr<u8> m_gfxrom;
-
-	required_device<ticket_dispenser_device> m_ticket;
-	required_ioport_array<2> m_io_dsw;
-	required_ioport_array<2> m_io_trackball;
 };
 
 
 void igs_fear_state::video_start()
 {
-	igs027_periph_init();
 }
 
 void igs_fear_state::machine_start()
 {
+	std::fill(std::begin(m_xor_table), std::end(m_xor_table), 0);
+
+	save_item(NAME(m_xor_table));
+
 	save_item(NAME(m_port2_latch));
 	save_item(NAME(m_port0_latch));
 
 	save_item(NAME(m_gpio_o));
-	save_item(NAME(m_irq_enable));
-	save_item(NAME(m_irq_pending));
 
 	save_item(NAME(m_xa_cmd));
 	save_item(NAME(m_xa_ret0));
@@ -157,8 +164,6 @@ void igs_fear_state::machine_reset()
 	m_port0_latch = 0;
 
 	m_gpio_o = 0;
-	m_irq_enable = 0;
-	m_irq_pending = 0;
 
 	m_xa_cmd = 0;
 	m_xa_ret0 = 0;
@@ -232,52 +237,61 @@ u32 igs_fear_state::screen_update(screen_device &screen, bitmap_ind16 &bitmap, c
 
 void igs_fear_state::main_map(address_map &map)
 {
-	map(0x00000000, 0x00003fff).rom(); /* Internal ROM */
-	map(0x08000000, 0x0807ffff).rom().region("user1", 0);/* Game ROM */
+	map(0x08000000, 0x0807ffff).rom().region("user1", 0); // Game ROM
 	map(0x10000000, 0x100003ff).ram().share("iram");
-	map(0x18000000, 0x1800ffff).ram().share("sram");
-	map(0x40000000, 0x400003ff).rw(FUNC(igs_fear_state::igs027_gpio_r), FUNC(igs_fear_state::igs027_gpio_w));
-	map(0x50000000, 0x500003ff).ram().share("xortab");
-	map(0x70000000, 0x700003ff).rw(FUNC(igs_fear_state::igs027_periph_r), FUNC(igs_fear_state::igs027_periph_w));
-
+	map(0x18000000, 0x1800ffff).ram().share(m_sram);
 	map(0x28000000, 0x28000003).rw("rtc", FUNC(v3021_device::read), FUNC(v3021_device::write));
-	map(0x38000000, 0x38001fff).ram().share("videoram");
+
+	map(0x38000000, 0x38001fff).ram().share(m_videoram);
 	map(0x38004000, 0x38007fff).ram().w(m_palette, FUNC(palette_device::write16)).share("palette");
 	map(0x38008500, 0x380085ff).rw(FUNC(igs_fear_state::xa_r), FUNC(igs_fear_state::xa_w));
+
+	map(0x40000000, 0x400003ff).rw(FUNC(igs_fear_state::igs027_gpio_r), FUNC(igs_fear_state::igs027_gpio_w));
+
+	map(0x50000000, 0x500003ff).umask32(0x000000ff).w(FUNC(igs_fear_state::xor_table_w));
+
 	map(0x58000000, 0x58000003).portr("IN0");
 	map(0x58100000, 0x58100003).portr("IN1");
-	map(0x68000000, 0x6800000f).w(FUNC(igs_fear_state::cpld_w));
 
+	map(0x68000000, 0x6800000f).w(FUNC(igs_fear_state::cpld_w));
 }
+
+void igs_fear_state::main_xor_map(address_map &map)
+{
+	main_map(map);
+
+	map(0x08000000, 0x0807ffff).r(FUNC(igs_fear_state::external_rom_r)); // Game ROM
+}
+
 
 static INPUT_PORTS_START( fear )
 	PORT_START("IN0")
-	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_BUTTON1 ) PORT_PLAYER(1)
-	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_BUTTON2 ) PORT_PLAYER(1)
-	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_SERVICE3 )
+	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_SERVICE2 )
 	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_JOYSTICK_UP ) PORT_PLAYER(1)
 	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_JOYSTICK_DOWN ) PORT_PLAYER(1)
 	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_JOYSTICK_LEFT ) PORT_PLAYER(1)
 	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_JOYSTICK_RIGHT ) PORT_PLAYER(1)
-	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x1000, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x2000, IP_ACTIVE_LOW, IPT_COIN1 ) PORT_IMPULSE(5)
-	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x4000, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x8000, IP_ACTIVE_LOW, IPT_SERVICE1 )
 
 	PORT_START("IN1")
-	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_BIT( 0x0001, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0002, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0004, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x0008, IP_ACTIVE_LOW, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("ticket", ticket_dispenser_device, line_r)
 	PORT_BIT( 0x0010, IP_ACTIVE_LOW, IPT_COIN2 ) PORT_IMPULSE(5)
-	PORT_BIT( 0x0020, IP_ACTIVE_LOW, IPT_SERVICE2 )
-	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_UNKNOWN )
+	PORT_SERVICE_NO_TOGGLE( 0x0020, IP_ACTIVE_LOW )
+	PORT_BIT( 0x0040, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0080, IP_ACTIVE_LOW, IPT_UNUSED )
 
 	PORT_START("DSW1")
 	PORT_DIPUNKNOWN_DIPLOC(0x01, 0x00, "SW1:1")
@@ -298,16 +312,16 @@ static INPUT_PORTS_START( fear )
 	PORT_DIPUNKNOWN_DIPLOC(0x20, 0x00, "SW2:6")
 	PORT_DIPUNKNOWN_DIPLOC(0x40, 0x00, "SW2:7")
 	PORT_DIPUNKNOWN_DIPLOC(0x80, 0x00, "SW2:7")
-
-	PORT_START("AN0")
-	PORT_BIT( 0xff, 0x00, IPT_TRACKBALL_X ) PORT_SENSITIVITY(20) PORT_KEYDELTA(20)
-
-	PORT_START("AN1")
-	PORT_BIT( 0xff, 0x00, IPT_TRACKBALL_Y ) PORT_SENSITIVITY(20) PORT_KEYDELTA(20)
 INPUT_PORTS_END
 
 INPUT_PORTS_START( superkds )
 	PORT_INCLUDE ( fear )
+
+	PORT_MODIFY("IN0")
+	PORT_BIT( 0x0100, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0200, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0400, IP_ACTIVE_LOW, IPT_UNUSED )
+	PORT_BIT( 0x0800, IP_ACTIVE_LOW, IPT_UNUSED )
 
 	PORT_MODIFY("DSW1")
 	PORT_DIPNAME( 0x03, 0x01, "Scene" ) PORT_DIPLOCATION("SW1:1,2")
@@ -376,6 +390,12 @@ INPUT_PORTS_START( superkds )
 	PORT_DIPNAME( 0x80, 0x00, "Language" ) PORT_DIPLOCATION("SW2:8")
 	PORT_DIPSETTING(    0x80, "Chinese" )
 	PORT_DIPSETTING(    0x00, "English" )
+
+	PORT_START("AN0")
+	PORT_BIT( 0xff, 0x00, IPT_TRACKBALL_X ) PORT_SENSITIVITY(20) PORT_KEYDELTA(20)
+
+	PORT_START("AN1")
+	PORT_BIT( 0xff, 0x00, IPT_TRACKBALL_Y ) PORT_SENSITIVITY(20) PORT_KEYDELTA(20)
 INPUT_PORTS_END
 
 void igs_fear_state::sound_irq(int state)
@@ -391,6 +411,19 @@ void igs_fear_state::vblank_irq(int state)
 		if (m_screen->frame_number() & 1)
 			m_maincpu->pulse_input_line(ARM7_FIRQ_LINE, m_maincpu->minimum_quantum_time());
 }
+
+
+u32 igs_fear_state::external_rom_r(offs_t offset)
+{
+	return m_external_rom[offset] ^ m_xor_table[offset & 0x00ff];
+}
+
+
+void igs_fear_state::xor_table_w(offs_t offset, u8 data)
+{
+	m_xor_table[offset] = (u32(data) << 24) | (u32(data) << 8);
+}
+
 
 u32 igs_fear_state::igs027_gpio_r(offs_t offset, u32 mem_mask)
 {
@@ -428,74 +461,6 @@ void igs_fear_state::igs027_gpio_w(offs_t offset, u32 data, u32 mem_mask)
 	}
 }
 
-void igs_fear_state::igs027_periph_init()
-{
-	m_irq_enable = 0xff;
-	m_irq_pending = 0xff;
-	m_timer0 = timer_alloc(FUNC(igs_fear_state::igs027_timer0), this);
-	m_timer1 = timer_alloc(FUNC(igs_fear_state::igs027_timer1), this);
-}
-
-void igs_fear_state::igs027_trigger_irq(int num)
-{
-	if (!BIT(m_irq_enable, num))
-	{
-		m_irq_pending &= ~(u32(1) << num);
-		m_maincpu->pulse_input_line(ARM7_IRQ_LINE, m_maincpu->minimum_quantum_time());
-	}
-}
-
-TIMER_CALLBACK_MEMBER(igs_fear_state::igs027_timer0)
-{
-	igs027_trigger_irq(0);
-}
-
-TIMER_CALLBACK_MEMBER(igs_fear_state::igs027_timer1)
-{
-	igs027_trigger_irq(1);
-}
-
-void igs_fear_state::igs027_periph_w(offs_t offset, u32 data, u32 mem_mask)
-{
-	switch (offset * 4)
-	{
-	case 0x100:
-		// TODO: verify the timer interval
-		m_timer0->adjust(attotime::from_hz(data / 2), 0, attotime::from_hz(data / 2));
-		break;
-
-	case 0x104:
-		m_timer1->adjust(attotime::from_hz(data / 2), 0, attotime::from_hz(data / 2));
-		break;
-
-	case 0x200:
-		m_irq_enable = data;
-		break;
-
-	default:
-		LOGMASKED(LOG_DEBUG, "%s: unhandled igs027_periph_w %04x %08x (%08x)\n", machine().describe_context(), offset * 4, data, mem_mask);
-		break;
-	}
-}
-
-u32 igs_fear_state::igs027_periph_r(offs_t offset, u32 mem_mask)
-{
-	u32 data = ~u32(0);
-	switch (offset * 4)
-	{
-	case 0x200:
-		data = m_irq_pending;
-		m_irq_pending = 0xff;
-		break;
-
-	default:
-		LOGMASKED(LOG_DEBUG, "%s: unhandled igs027_periph_r %04x (%08x)\n", machine().describe_context(), offset * 4, mem_mask);
-		break;
-
-	}
-	return data;
-}
-
 // TODO: trackball support in XA
 u32 igs_fear_state::xa_r(offs_t offset, u32 mem_mask)
 {
@@ -516,7 +481,9 @@ u32 igs_fear_state::xa_r(offs_t offset, u32 mem_mask)
 				for (int i = 0; i < 2; i++)
 				{
 					m_trackball_axis_pre[i] = m_trackball_axis[i];
-					m_trackball_axis[i] = m_io_trackball[i]->read();
+					if (m_io_trackball[i])
+						m_trackball_axis[i] = m_io_trackball[i]->read();
+
 					if (m_trackball_axis[i] & 0x80)
 						m_trackball_axis[i] -= 0x100;
 					m_trackball_axis_diff[i] = m_trackball_axis[i] - m_trackball_axis_pre[i];
@@ -638,7 +605,7 @@ void igs_fear_state::mcu_p1_w(uint8_t data)
 
 	if (posedge(olddata, m_port1_dat, 3))
 	{
-		igs027_trigger_irq(3);
+		m_maincpu->trigger_irq(3);
 	}
 }
 
@@ -694,12 +661,13 @@ void igs_fear_state::mcu_p3_w(uint8_t data)
 	}
 }
 
+
 void igs_fear_state::igs_fear(machine_config &config)
 {
-	ARM7(config, m_maincpu, 50000000/2);
+	IGS027A(config, m_maincpu, 50'000'000/2);
 	m_maincpu->set_addrmap(AS_PROGRAM, &igs_fear_state::main_map);
 
-	MX10EXA(config, m_xa, 50000000/3); // MX10EXAQC (Philips 80C51 XA)
+	MX10EXA(config, m_xa, 50'000'000/3); // MX10EXAQC (Philips 80C51 XA)
 	m_xa->port_in_cb<0>().set(FUNC(igs_fear_state::mcu_p0_r));
 	m_xa->port_in_cb<1>().set(FUNC(igs_fear_state::mcu_p1_r));
 	m_xa->port_in_cb<2>().set(FUNC(igs_fear_state::mcu_p2_r));
@@ -710,6 +678,8 @@ void igs_fear_state::igs_fear(machine_config &config)
 	m_xa->port_out_cb<3>().set(FUNC(igs_fear_state::mcu_p3_w));
 
 	config.set_maximum_quantum(attotime::from_hz(600));
+
+	NVRAM(config, "sram", nvram_device::DEFAULT_ALL_0);
 
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
 	m_screen->set_refresh_hz(60);
@@ -724,7 +694,7 @@ void igs_fear_state::igs_fear(machine_config &config)
 
 	V3021(config, "rtc");
 
-	TICKET_DISPENSER(config, m_ticket, attotime::from_msec(200), TICKET_MOTOR_ACTIVE_HIGH, TICKET_STATUS_ACTIVE_HIGH );
+	TICKET_DISPENSER(config, m_ticket, attotime::from_msec(200));
 
 	/* sound hardware */
 	SPEAKER(config, "mono").front_center();
@@ -732,6 +702,13 @@ void igs_fear_state::igs_fear(machine_config &config)
 	ICS2115(config, m_ics, 33.8688_MHz_XTAL); // TODO : Correct?
 	m_ics->irq().set(FUNC(igs_fear_state::sound_irq));
 	m_ics->add_route(ALL_OUTPUTS, "mono", 5.0);
+}
+
+void igs_fear_state::igs_fear_xor(machine_config &config)
+{
+	igs_fear(config);
+
+	m_maincpu->set_addrmap(AS_PROGRAM, &igs_fear_state::main_xor_map);
 }
 
 
@@ -819,6 +796,6 @@ void igs_fear_state::init_igs_icescape()
 
 } // anonymous namespace
 
-GAME( 2005, superkds, 0, igs_fear, superkds, igs_fear_state, init_igs_superkds, ROT0, "IGS (Golden Dragon Amusement license)", "Super Kids / Jiu Nan Xiao Yingxiong (S019CN)", 0 )
-GAME( 2006, fearless, 0, igs_fear, fear,     igs_fear_state, init_igs_fear,     ROT0, "IGS (American Alpha license)",          "Fearless Pinocchio (V101US)",                  0 )
-GAME( 2006, icescape, 0, igs_fear, fear,     igs_fear_state, init_igs_icescape, ROT0, "IGS",                                   "Icescape (V104FA)",                            MACHINE_IS_SKELETON ) // IGS FOR V104FA 2006-11-02
+GAME( 2005, superkds, 0, igs_fear_xor, superkds, igs_fear_state, init_igs_superkds, ROT0, "IGS (Golden Dragon Amusement license)", "Super Kids / Jiu Nan Xiao Yingxiong (S019CN)", 0 )
+GAME( 2006, fearless, 0, igs_fear_xor, fear,     igs_fear_state, init_igs_fear,     ROT0, "IGS (American Alpha license)",          "Fearless Pinocchio (V101US)",                  0 )
+GAME( 2006, icescape, 0, igs_fear,     fear,     igs_fear_state, init_igs_icescape, ROT0, "IGS",                                   "Icescape (V104FA)",                            MACHINE_IS_SKELETON ) // IGS FOR V104FA 2006-11-02
