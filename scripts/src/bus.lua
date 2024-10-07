@@ -2701,6 +2701,8 @@ if (BUSES["VCS_CTRL"]~=null) then
 		MAME_DIR .. "src/devices/bus/vcs_ctrl/mouse.h",
 		MAME_DIR .. "src/devices/bus/vcs_ctrl/paddles.cpp",
 		MAME_DIR .. "src/devices/bus/vcs_ctrl/paddles.h",
+		MAME_DIR .. "src/devices/bus/vcs_ctrl/trakball.cpp",
+		MAME_DIR .. "src/devices/bus/vcs_ctrl/trakball.h",
 		MAME_DIR .. "src/devices/bus/vcs_ctrl/wheel.cpp",
 		MAME_DIR .. "src/devices/bus/vcs_ctrl/wheel.h",
 	}
@@ -2865,6 +2867,8 @@ if (BUSES["VME"]~=null) then
 		MAME_DIR .. "src/devices/bus/vme/mvme187.h",
 		MAME_DIR .. "src/devices/bus/vme/mvme327a.cpp",
 		MAME_DIR .. "src/devices/bus/vme/mvme327a.h",
+		MAME_DIR .. "src/devices/bus/vme/mvme328.cpp",
+		MAME_DIR .. "src/devices/bus/vme/mvme328.h",
 		MAME_DIR .. "src/devices/bus/vme/mvme350.cpp",
 		MAME_DIR .. "src/devices/bus/vme/mvme350.h",
 		MAME_DIR .. "src/devices/bus/vme/mzr8105.cpp",
@@ -3139,6 +3143,8 @@ end
 
 if (BUSES["A2GAMEIO"]~=null) then
 	files {
+		MAME_DIR .. "src/devices/bus/a2gameio/brightpen.cpp",
+		MAME_DIR .. "src/devices/bus/a2gameio/brightpen.h",
 		MAME_DIR .. "src/devices/bus/a2gameio/computereyes.cpp",
 		MAME_DIR .. "src/devices/bus/a2gameio/computereyes.h",
 		MAME_DIR .. "src/devices/bus/a2gameio/gameio.cpp",
@@ -4233,14 +4239,14 @@ if (BUSES["BML3"]~=null) then
 	files {
 		MAME_DIR .. "src/devices/bus/bml3/bml3bus.cpp",
 		MAME_DIR .. "src/devices/bus/bml3/bml3bus.h",
-		MAME_DIR .. "src/devices/bus/bml3/bml3mp1802.cpp",
-		MAME_DIR .. "src/devices/bus/bml3/bml3mp1802.h",
-		MAME_DIR .. "src/devices/bus/bml3/bml3mp1805.cpp",
-		MAME_DIR .. "src/devices/bus/bml3/bml3mp1805.h",
-		MAME_DIR .. "src/devices/bus/bml3/bml3kanji.cpp",
-		MAME_DIR .. "src/devices/bus/bml3/bml3kanji.h",
-		MAME_DIR .. "src/devices/bus/bml3/bml3rtc.cpp",
-		MAME_DIR .. "src/devices/bus/bml3/bml3rtc.h",
+		MAME_DIR .. "src/devices/bus/bml3/mp1802.cpp",
+		MAME_DIR .. "src/devices/bus/bml3/mp1802.h",
+		MAME_DIR .. "src/devices/bus/bml3/mp1805.cpp",
+		MAME_DIR .. "src/devices/bus/bml3/mp1805.h",
+		MAME_DIR .. "src/devices/bus/bml3/kanji.cpp",
+		MAME_DIR .. "src/devices/bus/bml3/kanji.h",
+		MAME_DIR .. "src/devices/bus/bml3/rtc.cpp",
+		MAME_DIR .. "src/devices/bus/bml3/rtc.h",
 	}
 end
 
@@ -4838,6 +4844,8 @@ if (BUSES["SPECTRUM"]~=null) then
 		MAME_DIR .. "src/devices/bus/spectrum/mikroplus.h",
 		MAME_DIR .. "src/devices/bus/spectrum/mpoker.cpp",
 		MAME_DIR .. "src/devices/bus/spectrum/mpoker.h",
+		MAME_DIR .. "src/devices/bus/spectrum/musicmachine.cpp",
+		MAME_DIR .. "src/devices/bus/spectrum/musicmachine.h",
 		MAME_DIR .. "src/devices/bus/spectrum/opus.cpp",
 		MAME_DIR .. "src/devices/bus/spectrum/opus.h",
 		MAME_DIR .. "src/devices/bus/spectrum/plus2test.cpp",
@@ -5641,6 +5649,8 @@ if (BUSES["PCI"]~=null) then
 		MAME_DIR .. "src/devices/bus/pci/mga2064w.h",
 		MAME_DIR .. "src/devices/bus/pci/ncr53c825.cpp",
 		MAME_DIR .. "src/devices/bus/pci/ncr53c825.h",
+		MAME_DIR .. "src/devices/bus/pci/neon250.cpp",
+		MAME_DIR .. "src/devices/bus/pci/neon250.h",
 		MAME_DIR .. "src/devices/bus/pci/oti_spitfire.cpp",
 		MAME_DIR .. "src/devices/bus/pci/oti_spitfire.h",
 		MAME_DIR .. "src/devices/bus/pci/opti82c861.cpp",

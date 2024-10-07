@@ -5,8 +5,9 @@
 
 Chess King Triomphe
 
-For some reason, the programmer decided to (ab)use the HD6301 undefined opcode
-TRAP interrupt for the beeper routine. Very strange.
+The ROM includes (C)1985ICSL, that's Intelligent Chess Software Ltd. For some
+reason, the programmer decided to (ab)use the HD6301 undefined opcode TRAP
+interrupt for the beeper routine. Very strange.
 
 Hardware notes:
 - PCB label: TRIUMPHE CHESS KING
@@ -48,7 +49,7 @@ public:
 	void triomphe(machine_config &config);
 
 protected:
-	virtual void machine_start() override;
+	virtual void machine_start() override ATTR_COLD;
 
 private:
 	// devices/pointers
@@ -60,6 +61,7 @@ private:
 
 	u16 m_inp_mux = 0;
 
+	// I/O handlers
 	u8 input_r();
 	void board_w(u8 data);
 	void control_w(u8 data);
@@ -186,4 +188,4 @@ ROM_END
 *******************************************************************************/
 
 //    YEAR  NAME      PARENT  COMPAT  MACHINE   INPUT     CLASS           INIT        COMPANY, FULLNAME, FLAGS
-SYST( 1985, triomphe, 0,      0,      triomphe, triomphe, triomphe_state, empty_init, "Chess King / Intelligent Software", "Triomphe", MACHINE_SUPPORTS_SAVE )
+SYST( 1985, triomphe, 0,      0,      triomphe, triomphe, triomphe_state, empty_init, "Chess King / Intelligent Chess Software", "Triomphe", MACHINE_SUPPORTS_SAVE )

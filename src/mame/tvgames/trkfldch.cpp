@@ -67,12 +67,12 @@ public:
 	{ }
 
 	void trkfldch(machine_config &config);
-	void vectors_map(address_map &map);
+	void vectors_map(address_map &map) ATTR_COLD;
 
 protected:
-	virtual void machine_start() override;
-	virtual void machine_reset() override;
-	virtual void video_start() override;
+	virtual void machine_start() override ATTR_COLD;
+	virtual void machine_reset() override ATTR_COLD;
+	virtual void video_start() override ATTR_COLD;
 
 	virtual uint8_t unkregs_r(offs_t offset);
 	virtual void unkregs_w(offs_t offset, uint8_t data);
@@ -92,7 +92,7 @@ private:
 	void render_text_tile_layer(screen_device& screen, bitmap_ind16& bitmap, const rectangle& cliprect, uint16_t base);
 	void render_tile_layer(screen_device& screen, bitmap_ind16& bitmap, const rectangle& cliprect, int which);
 	uint32_t screen_update_trkfldch(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
-	void trkfldch_map(address_map &map);
+	void trkfldch_map(address_map &map) ATTR_COLD;
 
 	uint8_t read_vector(offs_t offset);
 
@@ -149,8 +149,8 @@ public:
 
 
 protected:
-	virtual void machine_start() override;
-	virtual void machine_reset() override;
+	virtual void machine_start() override ATTR_COLD;
+	virtual void machine_reset() override ATTR_COLD;
 
 	uint8_t unkregs_r(offs_t offset) override;
 	void unkregs_w(offs_t offset, uint8_t data) override;
@@ -947,7 +947,7 @@ static INPUT_PORTS_START( konsb )
 	PORT_DIPNAME( 0x20, 0x20, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON1 ) 
+	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_BUTTON1 )
 	PORT_DIPNAME( 0x80, 0x80, DEF_STR( Unknown ) )
 	PORT_DIPSETTING(    0x80, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
@@ -1723,5 +1723,5 @@ CONS( 200?, shtscore,  0,          0,  trkfldch, shtscore,trkfldch_state,      e
 CONS( 200?, lexitvsprt,0,          0,  trkfldch, lexi,    trkfldch_lexi_state, empty_init,    "Lexibook",                                   "TV Sports Plug & Play 5-in-1 (JG7000)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND )
 
 // additional online content could be downloaded onto these if they were connected to a PC via USB
-CONS( 2008, teleshi,   0,          0,  trkfldch, konsb,   trkfldch_state,      empty_init,    "Konami",                                     "Teleshibai (Japan)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND ) // テレしばい - this one is orange  
+CONS( 2008, teleshi,   0,          0,  trkfldch, konsb,   trkfldch_state,      empty_init,    "Konami",                                     "Teleshibai (Japan)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND ) // テレしばい - this one is orange
 CONS( 2008, teleship,  0,          0,  trkfldch, konsb,   trkfldch_state,      empty_init,    "Konami",                                     "Teleshibai - Purple Version (Japan)", MACHINE_NOT_WORKING | MACHINE_NO_SOUND ) // テレしばい (パープルバージョン) - this has Purple Version as part of the name  on the box

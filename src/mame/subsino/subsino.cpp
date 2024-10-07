@@ -226,6 +226,7 @@ To Do:
 #include "subsino_crypt.h"
 
 #include "cpu/z180/hd647180x.h"
+#include "cpu/z80/z80.h"
 #include "machine/i8255.h"
 #include "machine/nvram.h"
 #include "machine/ticket.h"
@@ -299,7 +300,7 @@ public:
 	void init_mtrainnv();
 
 protected:
-	virtual void machine_start() override;
+	virtual void machine_start() override ATTR_COLD;
 
 private:
 	required_shared_ptr<uint8_t> m_colorram;
@@ -349,20 +350,20 @@ private:
 	uint32_t screen_update_reels(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	uint32_t screen_update_stbsub_reels(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 
-	void crsbingo_map(address_map &map);
-	void dinofmly_map(address_map &map);
-	void mtrainnv_map(address_map &map);
-	void newhunterb_map(address_map &map);
-	void newhunterd_map(address_map &map);
-	void ramdac_map(address_map &map);
-	void sharkpy_map(address_map &map);
-	void srider_map(address_map &map);
-	void stbsub_map(address_map &map);
-	void subsino_iomap(address_map &map);
-	void tisub_base_map(address_map &map);
-	void tisub_map(address_map &map);
-	void victor21_map(address_map &map);
-	void victor5_map(address_map &map);
+	void crsbingo_map(address_map &map) ATTR_COLD;
+	void dinofmly_map(address_map &map) ATTR_COLD;
+	void mtrainnv_map(address_map &map) ATTR_COLD;
+	void newhunterb_map(address_map &map) ATTR_COLD;
+	void newhunterd_map(address_map &map) ATTR_COLD;
+	void ramdac_map(address_map &map) ATTR_COLD;
+	void sharkpy_map(address_map &map) ATTR_COLD;
+	void srider_map(address_map &map) ATTR_COLD;
+	void stbsub_map(address_map &map) ATTR_COLD;
+	void subsino_iomap(address_map &map) ATTR_COLD;
+	void tisub_base_map(address_map &map) ATTR_COLD;
+	void tisub_map(address_map &map) ATTR_COLD;
+	void victor21_map(address_map &map) ATTR_COLD;
+	void victor5_map(address_map &map) ATTR_COLD;
 };
 
 void subsino_state::machine_start()
@@ -2988,7 +2989,10 @@ void subsino_state::newhunterd(machine_config &config)
 {
 	tisub(config);
 
+	Z80(config.replace(), m_maincpu, 6'000'000); // unknown clock
 	m_maincpu->set_addrmap(AS_PROGRAM, &subsino_state::newhunterd_map);
+
+	subdevice<screen_device>("screen")->screen_vblank().set_inputline(m_maincpu, 0, HOLD_LINE); // ? (needs some kind of source for IM 1 interrupt)
 }
 
 void subsino_state::stbsub(machine_config &config)

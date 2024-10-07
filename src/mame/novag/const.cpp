@@ -116,7 +116,7 @@ public:
 	void init_const();
 
 protected:
-	virtual void machine_start() override;
+	virtual void machine_start() override ATTR_COLD;
 	virtual void machine_reset() override { m_power = true; }
 
 private:
@@ -131,9 +131,9 @@ private:
 	u8 m_inp_mux = 0;
 
 	// address maps
-	void const_map(address_map &map);
-	void ssensor4_map(address_map &map);
-	void sconst_map(address_map &map);
+	void const_map(address_map &map) ATTR_COLD;
+	void ssensor4_map(address_map &map) ATTR_COLD;
+	void sconst_map(address_map &map) ATTR_COLD;
 
 	// I/O handlers
 	void mux_w(u8 data);
@@ -320,7 +320,7 @@ static INPUT_PORTS_START( ssensor4 )
 	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_W) PORT_NAME("Hint")
 
 	PORT_START("POWER") // needs to be triggered for nvram to work
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_OTHER) PORT_CODE(KEYCODE_F1) PORT_CHANGED_MEMBER(DEVICE_SELF, const_state, power_off, 0) PORT_NAME("Power Off")
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_POWER_OFF) PORT_CHANGED_MEMBER(DEVICE_SELF, const_state, power_off, 0)
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( nconstq )
@@ -345,7 +345,7 @@ static INPUT_PORTS_START( sconst )
 	PORT_BIT(0x02, IP_ACTIVE_HIGH, IPT_KEYPAD) PORT_CODE(KEYCODE_3) PORT_NAME("Print List / Acc. Time / Pawn")
 
 	PORT_START("POWER")
-	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_OTHER) PORT_CODE(KEYCODE_F1) PORT_CHANGED_MEMBER(DEVICE_SELF, const_state, power_off, 0) PORT_NAME("Power Off")
+	PORT_BIT(0x01, IP_ACTIVE_HIGH, IPT_POWER_OFF) PORT_CHANGED_MEMBER(DEVICE_SELF, const_state, power_off, 0)
 INPUT_PORTS_END
 
 
@@ -511,11 +511,11 @@ ROM_END
 *******************************************************************************/
 
 //    YEAR  NAME      PARENT   COMPAT  MACHINE    INPUT     CLASS        INIT        COMPANY, FULLNAME, FLAGS
-SYST( 1981, ssensor4, 0,       0,      ssensor4,  ssensor4, const_state, empty_init, "Novag Industries", "Super Sensor IV", MACHINE_SUPPORTS_SAVE )
+SYST( 1981, ssensor4, 0,       0,      ssensor4,  ssensor4, const_state, empty_init, "Novag Industries / Intelligent Heuristic Programming", "Super Sensor IV", MACHINE_SUPPORTS_SAVE )
 
-SYST( 1983, const,    0,       0,      nconst,    nconst,   const_state, init_const, "Novag Industries", "Constellation", MACHINE_SUPPORTS_SAVE )
-SYST( 1984, const36,  const,   0,      nconst36,  nconst,   const_state, init_const, "Novag Industries", "Constellation 3.6MHz (set 1)", MACHINE_SUPPORTS_SAVE )
-SYST( 1986, const36a, const,   0,      nconst36a, nconst,   const_state, init_const, "Novag Industries", "Constellation 3.6MHz (set 2)", MACHINE_SUPPORTS_SAVE )
-SYST( 1986, constq,   const,   0,      nconstq,   nconstq,  const_state, init_const, "Novag Industries", "Constellation Quattro", MACHINE_SUPPORTS_SAVE )
+SYST( 1983, const,    0,       0,      nconst,    nconst,   const_state, init_const, "Novag Industries / Intelligent Heuristic Programming", "Constellation", MACHINE_SUPPORTS_SAVE )
+SYST( 1984, const36,  const,   0,      nconst36,  nconst,   const_state, init_const, "Novag Industries / Intelligent Heuristic Programming", "Constellation 3.6MHz (set 1)", MACHINE_SUPPORTS_SAVE )
+SYST( 1986, const36a, const,   0,      nconst36a, nconst,   const_state, init_const, "Novag Industries / Intelligent Heuristic Programming", "Constellation 3.6MHz (set 2)", MACHINE_SUPPORTS_SAVE )
+SYST( 1986, constq,   const,   0,      nconstq,   nconstq,  const_state, init_const, "Novag Industries / Intelligent Heuristic Programming", "Constellation Quattro", MACHINE_SUPPORTS_SAVE )
 
-SYST( 1984, supercon, 0,       0,      sconst,    sconst,   const_state, empty_init, "Novag Industries", "Super Constellation", MACHINE_SUPPORTS_SAVE )
+SYST( 1984, supercon, 0,       0,      sconst,    sconst,   const_state, empty_init, "Novag Industries / Intelligent Heuristic Programming", "Super Constellation", MACHINE_SUPPORTS_SAVE )

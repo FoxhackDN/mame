@@ -59,19 +59,19 @@ public:
 
 	void dice(machine_config &config);
 
-	DECLARE_CUSTOM_INPUT_MEMBER(boot_r) { return m_cold_boot; }
+	ioport_value boot_r() { return m_cold_boot; }
 	DECLARE_INPUT_CHANGED_MEMBER(ram_test) { m_maincpu->set_input_line(INPUT_LINE_NMI, newval ? ASSERT_LINE : CLEAR_LINE); }
 
 protected:
-	void machine_start() override;
+	void machine_start() override ATTR_COLD;
 
 	TIMER_CALLBACK_MEMBER(update_boot_flag);
 
 	void palette_init(palette_device &palette) const;
 	u32 screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 
-	void dice_mem(address_map &map);
-	void dice_io(address_map &map);
+	void dice_mem(address_map &map) ATTR_COLD;
+	void dice_io(address_map &map) ATTR_COLD;
 
 	required_device<cpu_device> m_maincpu;
 	required_device<i8255_device> m_ppi;

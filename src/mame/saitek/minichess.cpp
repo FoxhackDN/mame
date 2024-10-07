@@ -9,7 +9,7 @@ It's the first chess program on HMCS40. The engine was written by Mark Taylor
 with assistance from David Levy.
 
 Hardware notes:
-- Hitachi 44801A34 MCU @ ~500kHz
+- Hitachi 44801A34 MCU @ ~400kHz
 - 4-digit LCD screen
 
 Excluding resellers with same title, this MCU was used in:
@@ -18,6 +18,10 @@ Excluding resellers with same title, this MCU was used in:
 - SciSys Graduate Chess
 - SciSys Chess Partner 3000
 - SciSys Chess Partner 4000
+
+MCU clock is via a resistor, this less accurate than with an XTAL, so the speed
+may vary. Graduate Chess appears to have a 62K resistor between the OSC pins,
+which would make it around 500kHz?
 
 On CP3000/4000 they added a level slider. This will oscillate the level switch
 input pin, so the highest level setting is the same as level 2 on Mini Chess.
@@ -56,7 +60,7 @@ public:
 	void smchess(machine_config &config);
 
 protected:
-	virtual void machine_start() override;
+	virtual void machine_start() override ATTR_COLD;
 
 private:
 	// devices/pointers
@@ -72,7 +76,7 @@ private:
 
 	TIMER_DEVICE_CALLBACK_MEMBER(computing) { m_computing = 1; }
 
-	void update_display();
+	void update_lcd();
 	template<int N> void seg_w(u8 data);
 	void mux_w(u16 data);
 	u16 input_r();
@@ -94,7 +98,7 @@ void mini_state::machine_start()
     I/O
 *******************************************************************************/
 
-void mini_state::update_display()
+void mini_state::update_lcd()
 {
 	u8 data = (m_lcd_select & 1) ? (m_lcd_data ^ 0xff) : m_lcd_data;
 	data = bitswap<8>(data,2,4,6,7,5,1,0,3);
@@ -104,9 +108,9 @@ void mini_state::update_display()
 template<int N>
 void mini_state::seg_w(u8 data)
 {
-	// R2x,R3x: lcd segment data
+	// R2x,R3x: LCD segment data
 	m_lcd_data = (m_lcd_data & ~(0xf << (N*4))) | (data << (N*4));
-	update_display();
+	update_lcd();
 }
 
 void mini_state::mux_w(u16 data)
@@ -125,7 +129,7 @@ void mini_state::mux_w(u16 data)
 	}
 
 	m_lcd_select = sel;
-	update_display();
+	update_lcd();
 }
 
 u16 mini_state::input_r()
@@ -182,7 +186,7 @@ INPUT_PORTS_END
 void mini_state::smchess(machine_config &config)
 {
 	// basic machine hardware
-	HD44801(config, m_maincpu, 500'000); // approximation, R=62K
+	HD44801(config, m_maincpu, 400'000); // approximation
 	m_maincpu->write_r<2>().set(FUNC(mini_state::seg_w<0>));
 	m_maincpu->write_r<3>().set(FUNC(mini_state::seg_w<1>));
 	m_maincpu->write_d().set(FUNC(mini_state::mux_w));

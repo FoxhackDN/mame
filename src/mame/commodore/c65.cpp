@@ -66,11 +66,11 @@ public:
 
 	template <class T> void set_space(T &&tag, int spacenum) { m_space.set_tag(std::forward<T>(tag), spacenum); }
 
-	void map(address_map &map);
+	void map(address_map &map) ATTR_COLD;
 
 protected:
-	virtual void device_start() override;
-	virtual void device_reset() override;
+	virtual void device_start() override ATTR_COLD;
+	virtual void device_reset() override ATTR_COLD;
 
 private:
 	required_address_space m_space;
@@ -329,11 +329,11 @@ public:
 
 protected:
 	// driver_device overrides
-	virtual void machine_start() override;
-	virtual void machine_reset() override;
+	virtual void machine_start() override ATTR_COLD;
+	virtual void machine_reset() override ATTR_COLD;
 
-	virtual void video_start() override;
-	virtual void video_reset() override;
+	virtual void video_start() override ATTR_COLD;
+	virtual void video_reset() override ATTR_COLD;
 private:
 	required_device<m4510_device> m_maincpu;
 	required_device_array<mos6526_device, 2> m_cia;
@@ -368,7 +368,7 @@ private:
 	uint8_t m_keyb_c0_c7 = 0U;
 	uint8_t m_keyb_c8_c9 = 0U;
 
-	void vic4567_map(address_map &map);
+	void vic4567_map(address_map &map) ATTR_COLD;
 	void palette_red_w(offs_t offset, uint8_t data);
 	void palette_green_w(offs_t offset, uint8_t data);
 	void palette_blue_w(offs_t offset, uint8_t data);
@@ -385,7 +385,7 @@ private:
 	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 	void palette_init(palette_device &palette);
 
-	void c65_map(address_map &map);
+	void c65_map(address_map &map) ATTR_COLD;
 
 	void irq_check(uint8_t irq_cause);
 
@@ -1411,7 +1411,6 @@ void c65_state::cpu_w(uint8_t data)
 
 void c65_state::c65(machine_config &config)
 {
-	/* basic machine hardware */
 	M4510(config, m_maincpu, MAIN_C65_CLOCK);
 	m_maincpu->set_addrmap(AS_PROGRAM, &c65_state::c65_map);
 	m_maincpu->read_callback().set(FUNC(c65_state::cpu_r));
@@ -1443,8 +1442,6 @@ void c65_state::c65(machine_config &config)
 //  m_cia[1]->pa_rd_callback().set(FUNC(c65_state::c65_cia1_port_a_r));
 	m_cia[1]->pa_wr_callback().set(FUNC(c65_state::cia1_porta_w));
 
-
-	/* video hardware */
 	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
 	m_screen->set_screen_update(FUNC(c65_state::screen_update));
 	// TODO: stub parameters
@@ -1456,7 +1453,6 @@ void c65_state::c65(machine_config &config)
 
 	PALETTE(config, m_palette, FUNC(c65_state::palette_init), 0x100);
 
-	/* sound hardware */
 	SPEAKER(config, "lspeaker").front_left();
 	SPEAKER(config, "rspeaker").front_right();
 	// 8580 SID

@@ -11,7 +11,7 @@ Computachess (see cxg/computachess.cpp).
 
 Hardware notes:
 - PCB label: SCISYS TC-A, 201148
-- Hitachi 44801A85 MCU @ ~350kHz
+- Hitachi 44801A85 MCU @ ~400kHz (R=91K) or ~350Hz (R=150K)
 - piezo, 21 leds, button sensors chessboard
 
 44801A85 MCU is used in:
@@ -58,7 +58,7 @@ public:
 	DECLARE_INPUT_CHANGED_MEMBER(reset_button) { m_maincpu->set_input_line(INPUT_LINE_RESET, newval ? ASSERT_LINE : CLEAR_LINE); }
 
 protected:
-	virtual void machine_start() override;
+	virtual void machine_start() override ATTR_COLD;
 
 private:
 	// devices/pointers
@@ -157,7 +157,7 @@ INPUT_PORTS_END
 void tschess_state::tschess(machine_config &config)
 {
 	// basic machine hardware
-	HD44801(config, m_maincpu, 350'000); // approximation, R=150K
+	HD44801(config, m_maincpu, 400'000); // approximation
 	m_maincpu->write_r<2>().set(FUNC(tschess_state::mux_w<0>));
 	m_maincpu->write_r<3>().set(FUNC(tschess_state::mux_w<1>));
 	m_maincpu->write_d().set(FUNC(tschess_state::control_w));

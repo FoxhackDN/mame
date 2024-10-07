@@ -54,7 +54,7 @@ public:
 	void cforte(machine_config &config);
 
 protected:
-	virtual void machine_start() override;
+	virtual void machine_start() override ATTR_COLD;
 
 private:
 	// devices/pointers
@@ -69,7 +69,7 @@ private:
 	u8 m_led_select = 0;
 
 	// address maps
-	void main_map(address_map &map);
+	void main_map(address_map &map) ATTR_COLD;
 
 	// I/O handlers
 	void update_display();
@@ -292,5 +292,5 @@ ROM_END
 *******************************************************************************/
 
 //    YEAR  NAME     PARENT   COMPAT  MACHINE  INPUT   CLASS         INIT        COMPANY, FULLNAME, FLAGS
-SYST( 1986, cfortea, 0,       0,      cforte,  cforte, cforte_state, empty_init, "Novag Industries", "Constellation Forte (version A)", MACHINE_SUPPORTS_SAVE )
-SYST( 1986, cforteb, cfortea, 0,      cforte,  cforte, cforte_state, empty_init, "Novag Industries", "Constellation Forte (version B)", MACHINE_SUPPORTS_SAVE )
+SYST( 1986, cfortea, 0,       0,      cforte,  cforte, cforte_state, empty_init, "Novag Industries / Intelligent Heuristic Programming", "Constellation Forte (version A)", MACHINE_SUPPORTS_SAVE )
+SYST( 1986, cforteb, cfortea, 0,      cforte,  cforte, cforte_state, empty_init, "Novag Industries / Intelligent Heuristic Programming", "Constellation Forte (version B)", MACHINE_SUPPORTS_SAVE )

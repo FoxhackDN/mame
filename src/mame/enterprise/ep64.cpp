@@ -9,7 +9,7 @@
 /*
 
 Enterprise Sixty Four / Enterprise One Two Eight
-Enterprise Computers Ltd. 1985
+Developed by Intelligent Software, marketed by Enterprise Computers Ltd. 1985
 
 MAIN PCB Layout
 ---------------
@@ -214,8 +214,8 @@ private:
 	required_memory_region m_rom;
 	required_ioport_array<10> m_y;
 
-	virtual void machine_start() override;
-	virtual void machine_reset() override;
+	virtual void machine_start() override ATTR_COLD;
+	virtual void machine_reset() override ATTR_COLD;
 
 	uint8_t rd0_r();
 	void wr0_w(uint8_t data);
@@ -226,11 +226,11 @@ private:
 
 	void write_centronics_busy(int state);
 	int m_centronics_busy;
-	void dave_128k_mem(address_map &map);
-	void dave_64k_mem(address_map &map);
-	void dave_io(address_map &map);
-	void ep64_io(address_map &map);
-	void ep64_mem(address_map &map);
+	void dave_128k_mem(address_map &map) ATTR_COLD;
+	void dave_64k_mem(address_map &map) ATTR_COLD;
+	void dave_io(address_map &map) ATTR_COLD;
+	void ep64_io(address_map &map) ATTR_COLD;
+	void ep64_mem(address_map &map) ATTR_COLD;
 };
 
 
@@ -688,7 +688,7 @@ ROM_END
 //  SYSTEM DRIVERS
 //**************************************************************************
 
-//    YEAR  NAME   PARENT  COMPAT  MACHINE  INPUT  CLASS       INIT        COMPANY                 FULLNAME                     FLAGS
-COMP( 1985, ep64,  0,      0,      ep64,    ep64,  ep64_state, empty_init, "Enterprise Computers", "Enterprise Sixty Four",     MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
-COMP( 1985, phc64, ep64,   0,      ep64,    ep64,  ep64_state, empty_init, "Hegener + Glaser",     "Mephisto PHC 64 (Germany)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
-COMP( 1986, ep128, ep64,   0,      ep128,   ep64,  ep64_state, empty_init, "Enterprise Computers", "Enterprise One Two Eight",  MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
+//    YEAR  NAME   PARENT  COMPAT  MACHINE  INPUT  CLASS       INIT        COMPANY                                        FULLNAME                     FLAGS
+COMP( 1985, ep64,  0,      0,      ep64,    ep64,  ep64_state, empty_init, "Intelligent Software / Enterprise Computers", "Enterprise Sixty Four",     MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
+COMP( 1985, phc64, ep64,   0,      ep64,    ep64,  ep64_state, empty_init, "Intelligent Software / Hegener + Glaser",     "Mephisto PHC 64 (Germany)", MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )
+COMP( 1986, ep128, ep64,   0,      ep128,   ep64,  ep64_state, empty_init, "Intelligent Software / Enterprise Computers", "Enterprise One Two Eight",  MACHINE_IMPERFECT_GRAPHICS | MACHINE_IMPERFECT_SOUND )

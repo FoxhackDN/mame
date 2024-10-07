@@ -115,22 +115,22 @@ private:
 	// video updates
 	uint32_t screen_update(screen_device &screen, bitmap_ind16 &bitmap, const rectangle &cliprect);
 
-	void decrypted_opcodes_map(address_map &map);
-	void mcu_io_map(address_map &map);
-	void sound_decrypted_opcodes_map(address_map &map);
-	void sound_map(address_map &map);
-	void sound_no7751_portmap(address_map &map);
-	void sound_portmap(address_map &map);
-	void system16a_map(address_map &map);
+	void decrypted_opcodes_map(address_map &map) ATTR_COLD;
+	void mcu_io_map(address_map &map) ATTR_COLD;
+	void sound_decrypted_opcodes_map(address_map &map) ATTR_COLD;
+	void sound_map(address_map &map) ATTR_COLD;
+	void sound_no7751_portmap(address_map &map) ATTR_COLD;
+	void sound_portmap(address_map &map) ATTR_COLD;
+	void system16a_map(address_map &map) ATTR_COLD;
 
 	// internal types
 	typedef delegate<void ()> i8751_sim_delegate;
 	typedef delegate<void (uint8_t, uint8_t)> lamp_changed_delegate;
 
 	// driver overrides
-	virtual void video_start() override;
-	virtual void machine_start() override;
-	virtual void machine_reset() override;
+	virtual void video_start() override ATTR_COLD;
+	virtual void machine_start() override ATTR_COLD;
+	virtual void machine_reset() override ATTR_COLD;
 
 	// I8751 simulations
 	void dumpmtmt_i8751_sim();
@@ -198,9 +198,9 @@ public:
 		, m_steer(*this, "STEER")
 	{ }
 
-	DECLARE_CUSTOM_INPUT_MEMBER(afighter_accel_r);
-	DECLARE_CUSTOM_INPUT_MEMBER(afighter_handl_left_r);
-	DECLARE_CUSTOM_INPUT_MEMBER(afighter_handl_right_r);
+	ioport_value afighter_accel_r();
+	ioport_value afighter_handl_left_r();
+	ioport_value afighter_handl_right_r();
 
 private:
 	required_ioport     m_accel;
