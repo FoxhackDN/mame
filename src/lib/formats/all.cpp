@@ -576,6 +576,10 @@
 #include "rx50_dsk.h"
 #endif
 
+#ifdef HAS_FORMATS_SAP_DSK
+#include "sap_dsk.h"
+#endif
+
 #ifdef HAS_FORMATS_SC3000_BIT
 #include "sc3000_bit.h"
 #endif
@@ -785,6 +789,7 @@ void mame_formats_full_list(mame_formats_enumerator &en)
 	en.add(fs::PRODOS);
 #endif
 #ifdef HAS_FORMATS_AP2_DSK
+	en.add(FLOPPY_A213S_FORMAT); // ap2_dsk.h
 	en.add(FLOPPY_A216S_DOS_FORMAT); // ap2_dsk.h
 	en.add(FLOPPY_A216S_PRODOS_FORMAT); // ap2_dsk.h
 	en.add(FLOPPY_RWTS18_FORMAT); // ap2_dsk.h
@@ -1338,6 +1343,9 @@ void mame_formats_full_list(mame_formats_enumerator &en)
 #ifdef HAS_FORMATS_THOM_DSK
 	en.add(FLOPPY_THOMSON_525_FORMAT); // thom_dsk.h
 	en.add(FLOPPY_THOMSON_35_FORMAT); // thom_dsk.h
+#endif
+#ifdef HAS_FORMATS_SAP_DSK
+	en.add(FLOPPY_SAP_FORMAT);
 #endif
 
 	en.category("Texas Instruments");

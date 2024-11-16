@@ -1341,7 +1341,7 @@ static INPUT_PORTS_START( system32_generic )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_SERVICE3 ) PORT_NAME("Push SW1 (Service)") // on PCB
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_SERVICE4 ) PORT_NAME("Push SW2 (Test)") // on PCB
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("mainpcb:eeprom", eeprom_serial_93cxx_device, do_read)
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("mainpcb:eeprom", FUNC(eeprom_serial_93cxx_device::do_read))
 INPUT_PORTS_END
 
 
@@ -1395,7 +1395,7 @@ static INPUT_PORTS_START( system32_generic_slave )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_OTHER ) PORT_NAME("slavepcb:Push SW1 (Service)") PORT_CODE(KEYCODE_OPENBRACE)
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_OTHER ) PORT_NAME("slavepcb:Push SW2 (Test)") PORT_CODE(KEYCODE_CLOSEBRACE)
 	PORT_BIT( 0x40, IP_ACTIVE_LOW, IPT_UNKNOWN )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("slavepcb:eeprom", eeprom_serial_93cxx_device, do_read)
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("slavepcb:eeprom", FUNC(eeprom_serial_93cxx_device::do_read))
 INPUT_PORTS_END
 
 static INPUT_PORTS_START( multi32_generic )
@@ -1425,7 +1425,7 @@ static INPUT_PORTS_START( multi32_generic )
 	PORT_BIT( 0x4f, IP_ACTIVE_LOW, IPT_UNUSED )
 	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_OTHER ) PORT_NAME("Push SW3 (Service)") PORT_CODE(KEYCODE_OPENBRACE)
 	PORT_BIT( 0x20, IP_ACTIVE_LOW, IPT_OTHER ) PORT_NAME("Push SW4 (Test)") PORT_CODE(KEYCODE_CLOSEBRACE)
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("mainpcb:eeprom", eeprom_serial_93cxx_device, do_read)
+	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_CUSTOM ) PORT_READ_LINE_DEVICE_MEMBER("mainpcb:eeprom", FUNC(eeprom_serial_93cxx_device::do_read))
 INPUT_PORTS_END
 
 
@@ -5926,6 +5926,7 @@ void segas32_state::init_jleague()
 void segas32_state::init_titlef()
 {
 	segas32_common_init();
+	m_soundcpu->space(AS_PROGRAM).install_write_handler(0xb0, 0xbf, write8smo_delegate(*this, FUNC(segas32_state::scross_bank_w)));
 	m_sw1_output = &segas32_state::titlef_sw1_output;
 	m_sw2_output = &segas32_state::titlef_sw2_output;
 }
@@ -6012,7 +6013,7 @@ GAME( 1992, orunnersu, orunners, sega_multi32_analog,       orunners, segas32_ne
 GAME( 1992, orunnersj, orunners, sega_multi32_analog,       orunners, segas32_new_state, init_orunners, ROT0, "Sega", "OutRunners (Japan)", MACHINE_IMPERFECT_GRAPHICS )
 
 GAME( 1992, scross,    0,        sega_multi32_analog,       scross,   segas32_new_state, init_scross,   ROT0, "Sega", "Stadium Cross (World)", MACHINE_IMPERFECT_GRAPHICS )
-GAME( 1992, scrossa,   scross,   sega_multi32_analog,       scross,   segas32_new_state, init_scross,   ROT0, "Sega", "Stadium Cross (World, alt)", MACHINE_IMPERFECT_GRAPHICS )
+GAME( 1992, scrossa,   scross,   sega_multi32_analog,       scross,   segas32_new_state, init_scross,   ROT0, "Sega", "Stadium Cross (World, linkable)", MACHINE_IMPERFECT_GRAPHICS )
 GAME( 1992, scrossu,   scross,   sega_multi32_analog,       scross,   segas32_new_state, init_scross,   ROT0, "Sega", "Stadium Cross (US)", MACHINE_IMPERFECT_GRAPHICS )
 
 GAME( 1992, titlef,    0,        sega_multi32,              titlef,   segas32_new_state, init_titlef,   ROT0, "Sega",   "Title Fight (World)", MACHINE_IMPERFECT_GRAPHICS )

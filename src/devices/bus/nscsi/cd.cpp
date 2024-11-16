@@ -6,7 +6,7 @@
 #include "coreutil.h"
 #include "multibyte.h"
 
-#define VERBOSE 0
+#define VERBOSE (0)
 #include "logmacro.h"
 
 DEFINE_DEVICE_TYPE(NSCSI_CDROM, nscsi_cdrom_device, "scsi_cdrom", "SCSI CD-ROM")
@@ -861,18 +861,19 @@ bool nscsi_cdrom_sgi_device::scsi_command_done(uint8_t command, uint8_t length)
 	}
 }
 
-// Apple CDSC commands, from AppleCDSC.aii in IIgs System 6.0.1.
+// Apple CDSC commands, from "Apple CD-ROM SCSI Command Set", version 1.4, February 15, 1988.
 // These are related to the Sony CDU-541 commands but customized by Apple.
 enum apple_scsi_command_e : uint8_t {
-	APPLE_EJECT            = 0xc0,
-	APPLE_READ_TOC         = 0xc1,
-	APPLE_READ_SUB_CHANNEL = 0xc2,
-	APPLE_AUDIO_PLAY       = 0xc8,
-	APPLE_AUDIO_PLAY_TRACK = 0xc9,
-	APPLE_AUDIO_PAUSE      = 0xca,
-	APPLE_AUDIO_STOP       = 0xcb,
-	APPLE_AUDIO_STATUS     = 0xcc,
-	APPLE_AUDIO_SCAN       = 0xcd,
+	APPLE_EJECT            = 0xc0,      // EJECT DISC
+	APPLE_READ_TOC         = 0xc1,      // READ TOC
+	APPLE_READ_Q_SUBCODE   = 0xc2,      // READ Q SUBCODE
+	APPLE_READ_HEADER      = 0xc3,      // READ HEADER
+	APPLE_AUDIO_TRK_SEARCH = 0xc8,      // AUDIO TRACK SEARCH
+	APPLE_AUDIO_PLAY       = 0xc9,      // AUDIO PLAY
+	APPLE_AUDIO_PAUSE      = 0xca,      // AUDIO PAUSE
+	APPLE_AUDIO_STOP       = 0xcb,      // AUDIO STOP
+	APPLE_AUDIO_STATUS     = 0xcc,      // AUDIO STATUS
+	APPLE_AUDIO_SCAN       = 0xcd,      // AUDIO SCAN
 	APPLE_AUDIO_CONTROL    = 0xce
 };
 
@@ -902,6 +903,7 @@ void nscsi_cdrom_apple_device::return_no_cd()
 
 void nscsi_cdrom_apple_device::scsi_command()
 {
+	#if 1
 	if (scsi_cmdbuf[0] != 8 && scsi_cmdbuf[0] != 0x28 && scsi_cmdbuf[0] != 0 && scsi_cmdbuf[0] != 0x03)
 	{
 		LOG("CD command: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
@@ -910,10 +912,10 @@ void nscsi_cdrom_apple_device::scsi_command()
 			   scsi_cmdbuf[6], scsi_cmdbuf[7], scsi_cmdbuf[8],
 			   scsi_cmdbuf[9]);
 	}
-
+	#endif
 	switch (scsi_cmdbuf[0]) {
 	case SC_TEST_UNIT_READY:
-		LOG("command TEST UNIT READY (AppleCD)\n");
+		//LOG("command TEST UNIT READY (AppleCD)\n");
 		if(image->exists())
 		{
 			scsi_status_complete(SS_GOOD);
@@ -976,12 +978,18 @@ void nscsi_cdrom_apple_device::scsi_command()
 			u16 size = get_u16be(&scsi_cmdbuf[7]);
 			LOG("command READ TOC (AppleCD), size=%d, track=%d, type1=%02x type2=%02x\n", size, scsi_cmdbuf[2], scsi_cmdbuf[9], scsi_cmdbuf[5]);
 
-			if (scsi_cmdbuf[9] == 0x80)
+			// cmdbuf 9 bits 6 & 7:
+			// 00 = first and last track # in BCD
+			// 01 = starting address of the lead-out in M/S/F
+			// 10 = starting address of a range of tracks from a starting track
+			// 11 = reserved
+			const uint8_t operation = scsi_cmdbuf[9] & 0xc0;
+			if (operation == 0x80)
 			{
 				// get TOC info for 1 or more tracks from a specified starting track
 				assert(scsi_cmdbuf[5] > 0);
 
-				const int start_track = scsi_cmdbuf[5] - 1;
+				const int start_track = bcd_2_dec(scsi_cmdbuf[5]) - 1;
 				const int num_trks = size / 4;
 				int pos = 0;
 
@@ -1014,7 +1022,7 @@ void nscsi_cdrom_apple_device::scsi_command()
 				scsi_data_in(SBUF_MAIN, pos);
 				scsi_status_complete(SS_GOOD);
 			}
-			else if (scsi_cmdbuf[9] == 0x40)    // get MSF of the start of the leadout
+			else if (operation == 0x40)    // get MSF of the start of the leadout
 			{
 				const int track = image->get_last_track();
 				const uint32_t frame = to_msf(image->get_track_start(track));
@@ -1026,52 +1034,15 @@ void nscsi_cdrom_apple_device::scsi_command()
 				scsi_data_in(SBUF_MAIN, 4);
 				scsi_status_complete(SS_GOOD);
 			}
-			else
+			else if (operation == 0x00) // get start and end track numbers
 			{
-				switch (scsi_cmdbuf[5])
-				{
-					case 0x00:  // get start and end track numbers
-						scsi_cmdbuf[0] = 1;
-						scsi_cmdbuf[1] = dec_2_bcd(image->get_last_track());
-						scsi_cmdbuf[2] = 0;
-						scsi_cmdbuf[3] = 0;
+				scsi_cmdbuf[0] = 1;
+				scsi_cmdbuf[1] = dec_2_bcd(image->get_last_track());
+				scsi_cmdbuf[2] = 0;
+				scsi_cmdbuf[3] = 0;
 
-						scsi_data_in(SBUF_MAIN, 4);
-						scsi_status_complete(SS_GOOD);
-						break;
-
-					case 0x40:  // get first frame of lead-out (one past end of last track)
-						{
-							const uint32_t leadout_lba = image->get_track_start(0xaa);
-							const uint32_t leadout_frame = to_msf(leadout_lba);
-							scsi_cmdbuf[0] = dec_2_bcd(BIT(leadout_frame, 16, 8));  // minutes
-							scsi_cmdbuf[1] = dec_2_bcd(BIT(leadout_frame, 8, 8));   // seconds
-							scsi_cmdbuf[2] = dec_2_bcd(BIT(leadout_frame, 0, 8));   // frames
-							scsi_cmdbuf[3] = 0;
-
-							scsi_data_in(SBUF_MAIN, 4);
-							scsi_status_complete(SS_GOOD);
-						}
-						break;
-
-					case 0x80:  // get track info
-						{
-							const uint32_t start_lba = image->get_track_start(scsi_cmdbuf[2]);
-							const uint32_t start_frame = to_msf(start_lba);
-
-							scsi_cmdbuf[0] = image->get_adr_control(scsi_cmdbuf[2]);
-							scsi_cmdbuf[1] = dec_2_bcd(BIT(start_frame, 16, 8)); // minutes
-							scsi_cmdbuf[2] = dec_2_bcd(BIT(start_frame, 8, 8));  // seconds
-							scsi_cmdbuf[3] = dec_2_bcd(BIT(start_frame, 0, 8));  // frames
-							scsi_data_in(SBUF_MAIN, 4);
-							scsi_status_complete(SS_GOOD);
-						}
-						break;
-
-					default:
-						logerror("APPLE READ TOC: Unhandled type %02x\n", scsi_cmdbuf[5]);
-						break;
-				}
+				scsi_data_in(SBUF_MAIN, 4);
+				scsi_status_complete(SS_GOOD);
 			}
 		}
 		break;
@@ -1085,13 +1056,13 @@ void nscsi_cdrom_apple_device::scsi_command()
 			break;
 		}
 
-		// Audio status codes, adapted from CDRemote.equ in GS/OS 6.0.1 (matches CDU-541 as well)
+		// Audio status codes, adapted from CDRemote.equ in GS/OS 6.0.1 (matches Sony CDU-541 as well)
 		enum cd_status_t: u8
 		{
 			PLAYING = 0,        // Audio is playing
 			PAUSED,             // Audio is paused
 			PLAYING_MUTED,      // Playing, but muted
-			REACHED_END,        // Playback reached the end successfully
+			REACHED_END,        // Playback reached the end
 			ERROR,              // an error occured
 			VOID                // really "idle"
 		};
@@ -1106,9 +1077,6 @@ void nscsi_cdrom_apple_device::scsi_command()
 			scsi_cmdbuf[4] = dec_2_bcd(BIT(frame, 8, 8));   // second
 			scsi_cmdbuf[5] = dec_2_bcd(BIT(frame, 0, 8));   // frame
 
-			// TODO: When you pause, both 7.1's CD Remote and 7.6+'s more modern player still see the
-			// status as "playing" even though it's definitely returning "paused".  I've tried returning
-			// every code and nothing works.
 			if (type == 0)
 			{
 				scsi_cmdbuf[1] = 0;
@@ -1150,28 +1118,25 @@ void nscsi_cdrom_apple_device::scsi_command()
 				// Other 4 bytes unknown in this mode, going with the same as type 0 for now
 			}
 		}
-		//printf("status => %02x %02x %02x %02x %02x %02x\n", scsi_cmdbuf[0], scsi_cmdbuf[1], scsi_cmdbuf[2], scsi_cmdbuf[3], scsi_cmdbuf[4], scsi_cmdbuf[5]);
-		scsi_cmdbuf[0] = 0;
 		scsi_data_in(SBUF_MAIN, 6);
 		scsi_status_complete(SS_GOOD);
 		break;
 
-	case APPLE_READ_SUB_CHANNEL:
-		LOG("command READ SUB CHANNEL\n");
-
-		scsi_cmdbuf[0] = 0; // Control nibble
-		scsi_cmdbuf[1] = 0; // Track
-		scsi_cmdbuf[2] = 0; // Index
-		scsi_cmdbuf[3] = 0; // Relative Minute
-		scsi_cmdbuf[4] = 0; // Relative Second
-		scsi_cmdbuf[5] = 0; // Relative Frame
-		scsi_cmdbuf[6] = 0; // AMinute
-		scsi_cmdbuf[7] = 0; // ASecond
-		scsi_cmdbuf[8] = 0; // AFrame
-
-		if (cdda->audio_active())
+	case APPLE_READ_Q_SUBCODE:
 		{
-			int track = image->get_track(cdda->get_audio_lba());
+			LOG("command READ SUB CHANNEL\n");
+
+			scsi_cmdbuf[0] = 0; // Control nibble
+			scsi_cmdbuf[1] = 0; // Track
+			scsi_cmdbuf[2] = 0; // Index
+			scsi_cmdbuf[3] = 0; // Relative Minute
+			scsi_cmdbuf[4] = 0; // Relative Second
+			scsi_cmdbuf[5] = 0; // Relative Frame
+			scsi_cmdbuf[6] = 0; // AMinute
+			scsi_cmdbuf[7] = 0; // ASecond
+			scsi_cmdbuf[8] = 0; // AFrame
+
+			const int track = image->get_track(cdda->get_audio_lba());
 			scsi_cmdbuf[1] = dec_2_bcd(track+1);
 			scsi_cmdbuf[2] = 1; // Index
 
@@ -1192,50 +1157,95 @@ void nscsi_cdrom_apple_device::scsi_command()
 			scsi_cmdbuf[6] = dec_2_bcd(BIT(frame, 16, 8)); // minute
 			scsi_cmdbuf[7] = dec_2_bcd(BIT(frame, 8, 8));   // second
 			scsi_cmdbuf[8] = dec_2_bcd(BIT(frame, 0, 8));   // frame
-		}
 
-		scsi_data_in(SBUF_MAIN, 9);
-		scsi_status_complete(SS_GOOD);
+			scsi_data_in(SBUF_MAIN, 9);
+			scsi_status_complete(SS_GOOD);
+		}
 		break;
 
-	case APPLE_AUDIO_PLAY:
-	case APPLE_AUDIO_PLAY_TRACK:
+	// This command does not change the play or pause status.
+	case APPLE_AUDIO_TRK_SEARCH:
 		{
 			const uint8_t val = scsi_cmdbuf[5];
 			const uint8_t start_track = (((val & 0xf0) >> 4) * 10) + (val & 0x0f);
 
+			cdda->cancel_scan();
+			if (cdda->audio_paused())
+			{
+				cdda->pause_audio(0);
+			}
+
 			uint32_t start_lba = 0;
 
-			if (scsi_cmdbuf[0] == APPLE_AUDIO_PLAY)
+			// cmdbuf[9] bits 6 & 7:
+			// 00 = search address is LBA
+			// 01 = search address is M/S/F
+			// 10 = search address is track number
+			if (scsi_cmdbuf[9] == 0x40)
 			{
-				if (scsi_cmdbuf[9] == 0x40)
+				LOG("command APPLE AUDIO TRACK SEARCH MSF = %02x:%02x:%02x\n", scsi_cmdbuf[5], scsi_cmdbuf[6], scsi_cmdbuf[7]);
+				const uint32_t msf = (bcd_2_dec(scsi_cmdbuf[5]) << 16) | (bcd_2_dec(scsi_cmdbuf[6]) << 8) | bcd_2_dec(scsi_cmdbuf[7]);
+				start_lba = cdrom_file::msf_to_lba(msf);
+			}
+			else if (scsi_cmdbuf[9] == 0x80)
+			{
+				LOG("command APPLE AUDIO TRACK SEARCH track = %d\n", start_track);
+				if (start_track == 0)
 				{
-					LOG("command APPLE AUDIO PLAY MSF = %02x:%02x:%02x\n", scsi_cmdbuf[5], scsi_cmdbuf[6], scsi_cmdbuf[7]);
-					const uint32_t msf = (bcd_2_dec(scsi_cmdbuf[5]) << 16) | (bcd_2_dec(scsi_cmdbuf[6]) << 8) | bcd_2_dec(scsi_cmdbuf[7]);
-					start_lba = cdrom_file::msf_to_lba(msf);
-				}
-				else if (scsi_cmdbuf[9] == 0x80)
-				{
-					LOG("command APPLE AUDIO PLAY track = %d\n", start_track);
-					if (start_track == 0)
-					{
-						cdda->stop_audio();
-						scsi_status_complete(SS_GOOD);
-						return;
-					}
-					else
-					{
-						start_lba = image->get_track_start(start_track - 1);
-					}
+					cdda->stop_audio();
+					scsi_status_complete(SS_GOOD);
+					return;
 				}
 				else
 				{
-					logerror("nscsi_cdrom_apple_device: Unknown APPLE AUDIO PLAY address mode %02x\n", scsi_cmdbuf[9]);
+					start_lba = image->get_track_start(start_track - 1);
+					m_stop_position = image->get_track_start(start_track);  // does this actually update the stop position?
 				}
 			}
-			else    // APPLE_AUDIO_PLAY_TRACK
+			else if (scsi_cmdbuf[9] == 0x00)    // LBA
 			{
-				LOG("command APPLE AUDIO PLAY TRACK track = %d\n", start_track);
+				start_lba = (scsi_cmdbuf[5] << 24) | (scsi_cmdbuf[4] << 16) | (scsi_cmdbuf[3] << 8) || scsi_cmdbuf[2];
+			}
+			else
+			{
+				logerror("nscsi_cdrom_apple_device: Unknown APPLE AUDIO PLAY address mode %02x\n", scsi_cmdbuf[9]);
+			}
+
+			// PLAY / PAUSE bit
+			if ((scsi_cmdbuf[1] & 0x10) == 0x10)
+			{
+				cdda->start_audio(start_lba, m_stop_position - start_lba);
+			}
+			else
+			{
+				cdda->start_audio(start_lba, m_stop_position - start_lba);
+				cdda->pause_audio(true);
+			}
+			m_stopped = false;
+
+			scsi_status_complete(SS_GOOD);
+		}
+		break;
+
+	case APPLE_AUDIO_PLAY:
+		{
+			const uint8_t val = scsi_cmdbuf[5];
+			const uint8_t start_track = (((val & 0xf0) >> 4) * 10) + (val & 0x0f);
+
+			cdda->cancel_scan();
+			if (cdda->audio_paused())
+			{
+				cdda->pause_audio(0);
+			}
+
+			// cmdbuf[9] bits 6 & 7:
+			// 00 = address is LBA
+			// 01 = address is M/S/F
+			// 10 = address is track number
+			uint32_t address = 0;
+			if (scsi_cmdbuf[9] == 0x80)
+			{
+				LOG("command APPLE AUDIO PLAY track = %d\n", start_track);
 
 				// The Mac version of Apple CD-ROM Explorer issues PLAY on track 0 to stop
 				if (start_track == 0)
@@ -1247,23 +1257,106 @@ void nscsi_cdrom_apple_device::scsi_command()
 				}
 				else
 				{
-					start_lba = image->get_track_start(start_track - 1);
-					m_stop_position = image->get_track_start(start_track);
+					address = image->get_track_start(start_track - 1);
 				}
 			}
+			else if (scsi_cmdbuf[9] == 0x40)
+			{
+				LOG("command APPLE AUDIO PLAY TRACK MSF = %02x:%02x:%02x\n", scsi_cmdbuf[3], scsi_cmdbuf[4], scsi_cmdbuf[5]);
 
-			m_stopped = false;
-			cdda->start_audio(start_lba, m_stop_position - start_lba);
+				const uint32_t msf = (bcd_2_dec(scsi_cmdbuf[3]) << 16) | (bcd_2_dec(scsi_cmdbuf[4]) << 8) | bcd_2_dec(scsi_cmdbuf[5]);
+				address = cdrom_file::msf_to_lba(msf);
+			}
+			else if (scsi_cmdbuf[9] == 0x00)
+			{
+				address = (scsi_cmdbuf[5] << 24) | (scsi_cmdbuf[4] << 16) | (scsi_cmdbuf[3] << 8) || scsi_cmdbuf[2];
+				LOG("command APPLE AUDIO PLAY lba = %d\n", address);
+			}
+			else
+			{
+				fatalerror("nscsi_cdrom_apple_device: unknown mode for APPLE AUDIO PLAY %02x\n", scsi_cmdbuf[9]);
+			}
+
+			// cmdbuf[1] & 0x10:
+			// 0 = address is the starting address, stop address was set by a STOP command
+			// 1 = address is the stop address, start address was set by a TRACK SEARCH command
+			if (scsi_cmdbuf[1] & 0x10)
+			{
+				const auto start = cdda->get_audio_lba();
+				cdda->start_audio(start, address - start);
+			}
+			else
+			{
+				cdda->start_audio(address, m_stop_position - address);
+				m_stopped = false;
+			}
 			scsi_status_complete(SS_GOOD);
 		}
 		break;
 
 	case APPLE_AUDIO_SCAN:
+		/*
+		    3/4/5 = MSF of starting position
+		    1 = 00 for forward scan, 0x10 for reverse
+		    Scan ends with a PAUSE OFF command.
+		*/
 		LOG("command APPLE_AUDIO_SCAN: %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x\n",
 			scsi_cmdbuf[0], scsi_cmdbuf[1], scsi_cmdbuf[2],
 			scsi_cmdbuf[3], scsi_cmdbuf[4], scsi_cmdbuf[5],
 			scsi_cmdbuf[6], scsi_cmdbuf[7], scsi_cmdbuf[8],
 			scsi_cmdbuf[9]);
+
+		if (!m_stopped)
+		{
+			uint32_t start_lba = 0;
+			switch (scsi_cmdbuf[9] & 0xc0)
+			{
+			case 0x00: // stop at LBA
+				start_lba = (scsi_cmdbuf[5] << 24) | (scsi_cmdbuf[4] << 16) | (scsi_cmdbuf[3] << 8) || scsi_cmdbuf[2];
+				LOG("command APPLE AUDIO SCAN at LBA %d\n", m_stop_position);
+				break;
+
+			case 0x40: // stop at MSF
+			{
+				const uint32_t msf = (bcd_2_dec(scsi_cmdbuf[5]) << 16) | (bcd_2_dec(scsi_cmdbuf[6]) << 8) | bcd_2_dec(scsi_cmdbuf[7]);
+				start_lba = cdrom_file::msf_to_lba(msf);
+				LOG("command APPLE AUDIO SCAN at MSF %02x:%02x:%02x\n", scsi_cmdbuf[5], scsi_cmdbuf[6], scsi_cmdbuf[7]);
+			}
+			break;
+
+			case 0x80: // stop at track number
+			{
+				const uint8_t start_track = bcd_2_dec(scsi_cmdbuf[5]);
+				if (start_track >= image->get_last_track())
+				{
+					start_lba = image->get_track_start(0xaa);
+				}
+				else
+				{
+					start_lba = image->get_track_start(start_track + 1);
+				}
+				start_lba--;
+				LOG("command APPLE AUDIO SCAN at end of track %d (LBA %d)\n", start_track, m_stop_position);
+			}
+			break;
+
+			default:
+				logerror("nscsi_cdrom_apple_device: Unknown APPLE AUDIO SCAN address mode %02x\n", scsi_cmdbuf[9]);
+				break;
+			}
+
+			// begin seeking from the specified address
+			cdda->set_audio_lba(start_lba);
+
+			if ((scsi_cmdbuf[1] & 0x10) == 0)
+			{
+				cdda->scan_forward();
+			}
+			else
+			{
+				cdda->scan_reverse();
+			}
+		}
 		scsi_status_complete(SS_GOOD);
 		break;
 
@@ -1279,7 +1372,8 @@ void nscsi_cdrom_apple_device::scsi_command()
 		}
 		else
 		{
-			// release pause
+			// release pause and stop scanning
+			cdda->cancel_scan();
 			if (cdda->audio_paused())
 			{
 				cdda->pause_audio(0);
@@ -1289,34 +1383,48 @@ void nscsi_cdrom_apple_device::scsi_command()
 		break;
 
 	case APPLE_AUDIO_STOP:
-		LOG("command APPLE AUDIO STOP\n");
-		switch (scsi_cmdbuf[9])
+		switch (scsi_cmdbuf[9] & 0xc0)
 		{
-			case 0x00:  // stop immediately
-				m_stop_position = 0;
-				m_stopped = true;
-				cdda->stop_audio();
+			case 0x00:  // stop at LBA
+				m_stop_position = (scsi_cmdbuf[5] << 24) | (scsi_cmdbuf[4] << 16) | (scsi_cmdbuf[3] << 8) || scsi_cmdbuf[2];
+				LOG("command APPLE AUDIO STOP at LBA %d\n", m_stop_position);
 				break;
 
 			case 0x40: // stop at MSF
 				{
 					const uint32_t msf = (bcd_2_dec(scsi_cmdbuf[5]) << 16) | (bcd_2_dec(scsi_cmdbuf[6]) << 8) | bcd_2_dec(scsi_cmdbuf[7]);
 					m_stop_position = cdrom_file::msf_to_lba(msf);
+					LOG("command APPLE AUDIO STOP at MSF %02x:%02x:%02x\n", scsi_cmdbuf[5], scsi_cmdbuf[6], scsi_cmdbuf[7]);
 				}
 				break;
 
 			case 0x80: // stop at track number
 				{
-					const uint8_t val = scsi_cmdbuf[5];
-					const uint8_t start_track = (((val & 0xf0) >> 4) * 10) + (val & 0x0f);
-					m_stop_position = image->get_track_start(start_track);
+					const uint8_t start_track = bcd_2_dec(scsi_cmdbuf[5]);
+					if (start_track >= image->get_last_track())
+					{
+						m_stop_position = image->get_track_start(0xaa);
+					}
+					else
+					{
+						m_stop_position = image->get_track_start(start_track + 1);
+					}
+					m_stop_position--;
+					LOG("command APPLE AUDIO STOP at end of track %d (LBA %d)\n", start_track, m_stop_position);
 				}
 				break;
 
 			default:
-				logerror("nscsi_cdrom_apple_device: Unknown APPLE AUDIO STOPO address mode %02x\n", scsi_cmdbuf[9]);
+				logerror("nscsi_cdrom_apple_device: Unknown APPLE AUDIO STOP address mode %02x\n", scsi_cmdbuf[9]);
 				break;
 		}
+
+		if ((!m_stopped) && (cdda->get_audio_lba() >= m_stop_position))
+		{
+			m_stopped = true;
+			cdda->stop_audio();
+		}
+
 		scsi_status_complete(SS_GOOD);
 		break;
 
@@ -1356,6 +1464,7 @@ void nscsi_cdrom_apple_device::scsi_command()
 	case SC_READ_10:
 	case SC_READ_12:
 		cdda->stop_audio();
+		m_stopped = true;
 		[[fallthrough]];
 
 	default:
