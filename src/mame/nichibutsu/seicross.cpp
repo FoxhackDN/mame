@@ -21,7 +21,7 @@ B800      watchdog reset
 Write:
 8820-887f Sprite ram
 9800-981f Scroll control
-9880-989f ? (always 0?)
+9880-989f Sprite ram
 
 I/O ports:
 0         8910 control
@@ -40,6 +40,12 @@ Differences in new/old version of Frisky Tom
 
 This info came from http://www.ne.jp/asahi/cc-sakura/akkun/old/fryski.html
 
+TODO:
+- Dump radradj color proms instead of using the ones from the USA version.
+  Although it doesn't look displeasing right now, radradj middle colors of
+  both pen #0 and pen #6 should be green, so the 1st level background is
+  green instead of sandy.
+
 ***************************************************************************/
 
 #include "emu.h"
@@ -57,16 +63,6 @@ This info came from http://www.ne.jp/asahi/cc-sakura/akkun/old/fryski.html
 #include "tilemap.h"
 
 
-// configurable logging
-#define LOG_AYPORTB     (1U << 1)
-
-//#define VERBOSE (LOG_GENERAL | LOG_AYPORTB)
-
-#include "logmacro.h"
-
-#define LOGAYPORTB(...)     LOGMASKED(LOG_AYPORTB,     __VA_ARGS__)
-
-
 namespace {
 
 class seicross_state : public driver_device
@@ -81,6 +77,7 @@ public:
 		m_gfxdecode(*this, "gfxdecode"),
 		m_palette(*this, "palette"),
 		m_debug_port(*this, "DEBUG"),
+		m_sharedram(*this, "sharedram"),
 		m_spriteram(*this, "spriteram%u", 1U),
 		m_videoram(*this, "videoram"),
 		m_row_scroll(*this, "row_scroll"),
@@ -107,6 +104,7 @@ private:
 
 	optional_ioport m_debug_port;
 
+	required_shared_ptr<uint8_t> m_sharedram;
 	required_shared_ptr_array<uint8_t, 2> m_spriteram;
 	required_shared_ptr<uint8_t> m_videoram;
 	required_shared_ptr<uint8_t> m_row_scroll;
@@ -119,7 +117,7 @@ private:
 	void videoram_w(offs_t offset, uint8_t data);
 	void colorram_w(offs_t offset, uint8_t data);
 	uint8_t portb_r();
-	void portb_w(uint8_t data);
+	void portb_w(offs_t offset, uint8_t data, uint8_t mem_mask);
 
 	TILE_GET_INFO_MEMBER(get_bg_tile_info);
 
@@ -139,6 +137,54 @@ private:
 	void mcu_no_nvram_map(address_map &map) ATTR_COLD;
 	void mcu_nvram_map(address_map &map) ATTR_COLD;
 };
+
+
+void seicross_state::nvram_init(nvram_device &nvram, void *data, size_t size)
+{
+	static const uint8_t init[32] =
+	{
+		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
+		0, 1, 0, 1, 0, 1, 0, 3, 0, 1, 0, 0, 0, 0, 0, 0,
+	};
+
+	memset(data, 0x00, size);
+	memcpy(data, init, sizeof(init));
+}
+
+void seicross_state::machine_start()
+{
+	// install MCU waitstates
+	address_space &space = m_mcu->space(AS_PROGRAM);
+
+	// MR is asserted when it does an access with A15 is high,
+	// this makes DAC sound pitch the same as PCB recordings.
+	space.install_read_tap(
+			0x8000, 0xffff,
+			"mcu_mr_r",
+			[this] (offs_t offset, u8 &data, u8 mem_mask)
+			{
+				if (!machine().side_effects_disabled())
+					m_mcu->adjust_icount(-1);
+			});
+	space.install_write_tap(
+			0x8000, 0xffff,
+			"mcu_mr_w",
+			[this] (offs_t offset, u8 &data, u8 mem_mask)
+			{
+				if (!machine().side_effects_disabled())
+					m_mcu->adjust_icount(-1);
+			});
+
+	// register for savestates
+	save_item(NAME(m_portb));
+	save_item(NAME(m_irq_mask));
+}
+
+void seicross_state::machine_reset()
+{
+	// start with the protection MCU halted
+	m_mcu->set_input_line(INPUT_LINE_HALT, ASSERT_LINE);
+}
 
 
 /***************************************************************************
@@ -179,7 +225,7 @@ void seicross_state::palette(palette_device &palette) const
 		// blue component
 		bit0 = BIT(color_prom[i], 6);
 		bit1 = BIT(color_prom[i], 7);
-		int const b = 0x4f * bit0 + 0xa8 * bit1;
+		int const b = 0x52 * bit0 + 0xad * bit1;
 
 		palette.set_pen_color(i, rgb_t(r, g, b));
 	}
@@ -229,15 +275,23 @@ void seicross_state::draw_sprites(bitmap_ind16 &bitmap, const rectangle &cliprec
 			uint8_t const *data = &m_spriteram[bank][offs];
 			int const code = (data[0] & 0x3f) | ((data[1] & 0x10) << 2) | (bank ? 0 : 0x80);
 			int const color = data[1] & 0x0f;
-			int const flipx = BIT(data[0], 6);
-			int const flipy = BIT(data[0], 7);
-			int const x = data[3];
-			int const y = 240 - data[2];
+			int flipx = BIT(data[0], 6);
+			int flipy = BIT(data[0], 7);
+			int sx = data[3];
+			int sy = 240 - data[2];
 
-			m_gfxdecode->gfx(1)->transpen(bitmap, cliprect, code, color, flipx, flipy, x, y, 0);
+			if (flip_screen())
+			{
+				sx = 240 - sx;
+				sy = 240 - sy;
+				flipx = !flipx;
+				flipy = !flipy;
+			}
 
-			if (x > 0xf0)
-				m_gfxdecode->gfx(1)->transpen(bitmap, cliprect, code, color, flipx, flipy, x - 256, y, 0);
+			m_gfxdecode->gfx(1)->transpen(bitmap, cliprect, code, color, flipx, flipy, sx, sy, 0);
+
+			const int dx = flip_screen() ? +256 : -256;
+			m_gfxdecode->gfx(1)->transpen(bitmap, cliprect, code, color, flipx, flipy, sx + dx, sy, 0);
 		}
 	}
 }
@@ -255,54 +309,32 @@ uint32_t seicross_state::screen_update(screen_device &screen, bitmap_ind16 &bitm
 }
 
 
-void seicross_state::nvram_init(nvram_device &nvram, void *data, size_t size)
-{
-	static const uint8_t init[32] =
-	{
-		0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1,
-		0, 1, 0, 1, 0, 1, 0, 3, 0, 1, 0, 0, 0, 0, 0, 0,
-	};
-
-	memset(data, 0x00, size);
-	memcpy(data, init, sizeof(init));
-}
-
-void seicross_state::machine_start()
-{
-	save_item(NAME(m_portb));
-	save_item(NAME(m_irq_mask));
-}
-
-void seicross_state::machine_reset()
-{
-	// start with the protection MCU halted
-	m_mcu->set_input_line(INPUT_LINE_HALT, ASSERT_LINE);
-}
-
-
 
 uint8_t seicross_state::portb_r()
 {
-	return (m_portb & 0x9f) | (m_debug_port.read_safe(0) & 0x60);
+	return (m_portb & 0x0f) | (m_debug_port.read_safe(0) & 0xf0);
 }
 
-void seicross_state::portb_w(uint8_t data)
+void seicross_state::portb_w(offs_t offset, uint8_t data, uint8_t mem_mask)
 {
-	LOGAYPORTB("PC %04x: 8910 port B = %02x\n", m_maincpu->pc(), data);
+	// ignore if high-impedance (seicross relies on it)
+	if (mem_mask == 0)
+		return;
+
 	// bit 0 is IRQ enable
 	m_irq_mask = data & 1;
 
 	// bit 1 flips screen
+	flip_screen_set(data & 2);
 
 	// bit 2 resets the microcontroller
 	if (((m_portb & 4) == 0) && (data & 4))
 	{
-		// reset and start the protection MCU
 		m_mcu->pulse_input_line(INPUT_LINE_RESET, attotime::zero);
 		m_mcu->set_input_line(INPUT_LINE_HALT, CLEAR_LINE);
 	}
 
-	// other bits unknown
+	// other bits unused
 	m_portb = data;
 }
 
@@ -314,7 +346,7 @@ void seicross_state::dac_w(uint8_t data)
 void seicross_state::main_map(address_map &map)
 {
 	map(0x0000, 0x77ff).rom();
-	map(0x7800, 0x7fff).ram().share("sharedram");
+	map(0x7800, 0x7fff).ram().share(m_sharedram);
 	map(0x8820, 0x887f).ram().share(m_spriteram[0]);
 	map(0x9000, 0x93ff).ram().w(FUNC(seicross_state::videoram_w)).share(m_videoram);
 	map(0x9800, 0x981f).ram().share(m_row_scroll);
@@ -339,7 +371,7 @@ void seicross_state::mcu_nvram_map(address_map &map)
 	map(0x1000, 0x10ff).ram().share("nvram");
 	map(0x2000, 0x2000).w(FUNC(seicross_state::dac_w));
 	map(0x8000, 0xf7ff).rom().region("maincpu", 0);
-	map(0xf800, 0xffff).ram().share("sharedram");
+	map(0xf800, 0xffff).ram().share(m_sharedram);
 }
 
 void seicross_state::mcu_no_nvram_map(address_map &map)
@@ -349,7 +381,7 @@ void seicross_state::mcu_no_nvram_map(address_map &map)
 	map(0x1006, 0x1006).portr("DSW3");
 	map(0x2000, 0x2000).w(FUNC(seicross_state::dac_w));
 	map(0x8000, 0xf7ff).rom().region("maincpu", 0);
-	map(0xf800, 0xffff).ram().share("sharedram");
+	map(0xf800, 0xffff).ram().share(m_sharedram);
 }
 
 
@@ -536,14 +568,14 @@ static INPUT_PORTS_START( seicross )
 	PORT_BIT( 0xf0, IP_ACTIVE_HIGH, IPT_UNUSED )
 
 	PORT_START("DEBUG")
-	PORT_BIT( 0x1f, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x10, IP_ACTIVE_LOW, IPT_UNKNOWN )
 	PORT_DIPNAME( 0x20, 0x20, "Debug Mode" )
 	PORT_DIPSETTING(    0x20, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
 	PORT_DIPNAME( 0x40, 0x40, "Invulnerability" )
 	PORT_DIPSETTING(    0x40, DEF_STR( Off ) )
 	PORT_DIPSETTING(    0x00, DEF_STR( On ) )
-	PORT_BIT( 0x80, IP_ACTIVE_HIGH, IPT_UNKNOWN )
+	PORT_BIT( 0x80, IP_ACTIVE_LOW, IPT_UNKNOWN )
 INPUT_PORTS_END
 
 
@@ -589,12 +621,12 @@ INTERRUPT_GEN_MEMBER(seicross_state::vblank_irq)
 void seicross_state::no_nvram(machine_config &config)
 {
 	// Basic machine hardware
-	Z80(config, m_maincpu, 4'000'000); // D780C, 4MHz?
+	Z80(config, m_maincpu, 18.432_MHz_XTAL / 6); // D780C, 3.072MHz
 	m_maincpu->set_addrmap(AS_PROGRAM, &seicross_state::main_map);
 	m_maincpu->set_addrmap(AS_IO, &seicross_state::main_portmap);
 	m_maincpu->set_vblank_int("screen", FUNC(seicross_state::vblank_irq));
 
-	NSC8105(config, m_mcu, 2'000'000); // 2MHz? matches PCB DAC sound pitch
+	NSC8105(config, m_mcu, 18.432_MHz_XTAL / 6); // 3.072MHz
 	m_mcu->set_addrmap(AS_PROGRAM, &seicross_state::mcu_no_nvram_map);
 
 	config.set_maximum_quantum(attotime::from_hz(1200)); // 20 CPU slices per frame, a high value to ensure proper synchronization of the CPUs
@@ -635,14 +667,14 @@ void seicross_state::nvram(machine_config &config)
 void seicross_state::friskytb(machine_config &config)
 {
 	nvram(config);
-	M6802(config.replace(), m_mcu, 2'000'000); // presumed to be an HD46802P or compatible
+	M6802(config.replace(), m_mcu, 18.432_MHz_XTAL / 6); // presumed to be an HD46802P or compatible
 	m_mcu->set_addrmap(AS_PROGRAM, &seicross_state::mcu_nvram_map);
 }
 
 void seicross_state::sectznt(machine_config &config)
 {
 	no_nvram(config);
-	M6802(config.replace(), m_mcu, 2'000'000); // actually HD46802P
+	M6802(config.replace(), m_mcu, 18.432_MHz_XTAL / 6); // actually HD46802P
 	m_mcu->set_addrmap(AS_PROGRAM, &seicross_state::mcu_no_nvram_map);
 }
 
@@ -761,11 +793,11 @@ ROM_START( radradj ) // Top and bottom PCBs have Nihon Bussan etched and the top
 	ROM_LOAD( "10.7j",      0x3000, 0x1000, CRC(79237913) SHA1(b07dd531d06ef01f756169e87a8cccda35ed38d3) ) // 2732
 
 	ROM_REGION( 0x0040, "proms", 0 ) // not dumped for this set
-	ROM_LOAD( "clr.9c",     0x0000, 0x0020, CRC(c9d88422) SHA1(626216bac1a6317a32f2a51b89375043f58b5503) )
-	ROM_LOAD( "clr.9b",     0x0020, 0x0020, CRC(ee81af16) SHA1(e1bab9738d37dea0473a7184a4303234b75e6cc6) )
+	ROM_LOAD( "clr.9c",     0x0000, 0x0020, BAD_DUMP CRC(c9d88422) SHA1(626216bac1a6317a32f2a51b89375043f58b5503) )
+	ROM_LOAD( "clr.9b",     0x0020, 0x0020, BAD_DUMP CRC(ee81af16) SHA1(e1bab9738d37dea0473a7184a4303234b75e6cc6) )
 
-	ROM_REGION( 0x0100, "plds", 0 )  // not dumped for this set
-	ROM_LOAD( "pal16h2.2b", 0x0000, 0x0044, CRC(a356803a) SHA1(a324d3cbe2de5bf54be9aa07c984054149ac3eb0) )
+	ROM_REGION( 0x0100, "plds", 0 ) // not dumped for this set
+	ROM_LOAD( "pal16h2.2b", 0x0000, 0x0044, BAD_DUMP CRC(a356803a) SHA1(a324d3cbe2de5bf54be9aa07c984054149ac3eb0) )
 ROM_END
 
 ROM_START( seicross )
@@ -793,7 +825,7 @@ ROM_START( seicross )
 	ROM_LOAD( "pal16h2.3b", 0x0000, 0x0044, CRC(e1a6a86d) SHA1(740a5c2ef8a992f6a794c0fc4c81eb50cfcedc32) )
 ROM_END
 
-// this set is almost identical to sectrzon
+// This set is almost identical to sectrzona.
 ROM_START( seicrossa )
 	ROM_REGION( 0x7800, "maincpu", 0 )
 	ROM_LOAD( "sr-1.3a",    0x0000, 0x1000, CRC(f0a45cb4) SHA1(ab3b8d78e25cdbb2fd6a6c0718ae13767364994d) )
@@ -802,7 +834,7 @@ ROM_START( seicrossa )
 	ROM_LOAD( "sr-4.3e",    0x3000, 0x1000, CRC(75f2ca75) SHA1(fbf990edcb7b5a58f8dcee160883fde5e222ca6b) )
 	ROM_LOAD( "sr-5.3f",    0x4000, 0x1000, CRC(dc14f2c8) SHA1(dcda8d6f7be458d0adcddc37bbe0eb636a5b0b06) )
 	ROM_LOAD( "sr-6.3g",    0x5000, 0x1000, CRC(397a38c5) SHA1(6189028376c1781aae107c5fe0aec181a1d885e1) )
-	ROM_LOAD( "sr-7.3i",    0x6000, 0x1000, CRC(220a0919) SHA1(86e4c5d60353db17991fc5d6788308ed28bdc795) ) // unique, 1st half identical to seicross, 2nd half identical to sectrzon
+	ROM_LOAD( "sr-7.3i",    0x6000, 0x1000, CRC(220a0919) SHA1(86e4c5d60353db17991fc5d6788308ed28bdc795) ) // unique, 1st half identical to seicross, 2nd half identical to sectrzona
 	ROM_LOAD( "sr-8.3j",    0x7000, 0x0800, CRC(2a95ad44) SHA1(75f5e9ea90f23b4e253d9f5a781a32fa914dee8c) ) // 1ST AND 2ND HALF IDENTICAL, same as sz8.3j
 	ROM_IGNORE(                     0x0800)
 
@@ -814,13 +846,39 @@ ROM_START( seicrossa )
 
 	ROM_REGION( 0x0040, "proms", 0 )
 	ROM_LOAD( "sr-3.9c",    0x0000, 0x0020, CRC(4d218a3c) SHA1(26364dfdb7e13080357328a06c3bcf504778defd) )
-	ROM_LOAD( "sr-4.9b",    0x0020, 0x0020, BAD_DUMP CRC(969beb4c) SHA1(69499d916871bb0529952c89fbd75694124ec0b2) ) // unique, gives bad colors. No references available. TODO: verify if it's really bad
+	ROM_LOAD( "sr-4.9b",    0x0020, 0x0020, CRC(969beb4c) SHA1(69499d916871bb0529952c89fbd75694124ec0b2) ) // unique, gives different title logo colors
 
 	ROM_REGION( 0x0100, "plds", 0 )
 	ROM_LOAD( "pal16h2.3b", 0x0000, 0x0044, BAD_DUMP CRC(e1a6a86d) SHA1(740a5c2ef8a992f6a794c0fc4c81eb50cfcedc32) ) // not dumped for this set
 ROM_END
 
+// This and set seicross seem bug-fixed versions, where the attract mode works. In the other sets during attract the player only goes straight until he crashes.
 ROM_START( sectrzon )
+	ROM_REGION( 0x7800, "maincpu", 0 )
+	ROM_LOAD( "sz1.3a",     0x0000, 0x1000, CRC(f6c3aeca) SHA1(d57019e80f7e3d47ca74f54604e92d40ba9819fc) )
+	ROM_LOAD( "sz2.3c",     0x1000, 0x1000, CRC(f167f10e) SHA1(d23043afe0f7a06fbec92b333d6db172523faf27) )
+	ROM_LOAD( "sz3.3d",     0x2000, 0x1000, CRC(ceb3c8f4) SHA1(e49f834637b4addcf362cd010e31802c3e145cbe) )
+	ROM_LOAD( "sz4.3e",     0x3000, 0x1000, CRC(3112af59) SHA1(3d4e5a74a13bdeaf07f059f8c3a0d2ca8cbb3d32) )
+	ROM_LOAD( "sz5.3fg",    0x4000, 0x1000, CRC(b494a993) SHA1(ed60cbaef2ac780c11426d29a612d34e76b29a0e) )
+	ROM_LOAD( "sz6.3h",     0x5000, 0x1000, CRC(09d5b9da) SHA1(636a8d4717df4ed1fc02fa83782fa8d96b88f969) )
+	ROM_LOAD( "sz7.3i",     0x6000, 0x1000, CRC(13052b03) SHA1(2866f2533a788f734310a74789f762f3fa17a57a) )
+	ROM_LOAD( "sz8.3j",     0x7000, 0x0800, CRC(019f9651) SHA1(2b030e7823b277fb6e3f37753a4d52d277e0e079) )
+
+	ROM_REGION( 0x4000, "gfx", 0 )
+	ROM_LOAD( "sz11.7k",    0x0000, 0x1000, CRC(fbd9b91d) SHA1(6b3581f4b518c058b970d569ced07dd7dc6a87e6) )
+	ROM_LOAD( "sz12.7m",    0x1000, 0x1000, CRC(2bdef9ad) SHA1(50fe41e81c1307317b4fb6b47bf0619d141c42ff) )
+	ROM_LOAD( "sz9.7j",     0x2000, 0x1000, CRC(4819f0cd) SHA1(fa8d371efc3198daf76ff1264e22673c5521becf) )
+	ROM_LOAD( "sz10.7h",    0x3000, 0x1000, CRC(4c268778) SHA1(a1444fb3eb397c8167d769aa1f935c5f19df4d6d) )
+
+	ROM_REGION( 0x0040, "proms", 0 ) // not dumped for this set
+	ROM_LOAD( "sz73.10c",   0x0000, 0x0020, BAD_DUMP CRC(4d218a3c) SHA1(26364dfdb7e13080357328a06c3bcf504778defd) )
+	ROM_LOAD( "sz74.10b",   0x0020, 0x0020, BAD_DUMP CRC(c550531c) SHA1(d564aeb8a99861d29e00cf968242fe6c6cec478b) )
+
+	ROM_REGION( 0x0100, "plds", 0 ) // not dumped for this set
+	ROM_LOAD( "pal16h2.3b", 0x0000, 0x0044, BAD_DUMP CRC(e1a6a86d) SHA1(740a5c2ef8a992f6a794c0fc4c81eb50cfcedc32) )
+ROM_END
+
+ROM_START( sectrzona )
 	ROM_REGION( 0x7800, "maincpu", 0 )
 	ROM_LOAD( "sz1.3a",     0x0000, 0x1000, CRC(f0a45cb4) SHA1(ab3b8d78e25cdbb2fd6a6c0718ae13767364994d) )
 	ROM_LOAD( "sz2.3c",     0x1000, 0x1000, CRC(fea68ddb) SHA1(b9ed0cad9a2ded04bcc7042d975b77be63313070) )
@@ -845,6 +903,7 @@ ROM_START( sectrzon )
 	ROM_LOAD( "pal16h2.3b", 0x0000, 0x0044, CRC(e1a6a86d) SHA1(740a5c2ef8a992f6a794c0fc4c81eb50cfcedc32) )
 ROM_END
 
+// Based on sectrzona set, with obviously patched MCU program to make it work on a standard 6802.
 ROM_START( sectrzont )
 	ROM_REGION( 0x7800, "maincpu", 0 )
 	ROM_LOAD( "czt_1.bin",  0x0000, 0x1000, CRC(f0a45cb4) SHA1(ab3b8d78e25cdbb2fd6a6c0718ae13767364994d) )
@@ -871,41 +930,18 @@ ROM_START( sectrzont )
 	ROM_LOAD( "czt_pal16h2cn.bin", 0x0000, 0x0044, CRC(7edec1ed) SHA1(1b28cb250875f14a76d84bfc0b23ee02b1862c2c) )
 ROM_END
 
-ROM_START( sectrzona ) // This and set seicross seem bug-fixed versions, where the attract mode works. In the other sets during attract the player only goes straight until he crashes
-	ROM_REGION( 0x7800, "maincpu", 0 )
-	ROM_LOAD( "sz1.3a",     0x0000, 0x1000, CRC(f6c3aeca) SHA1(d57019e80f7e3d47ca74f54604e92d40ba9819fc) )
-	ROM_LOAD( "sz2.3c",     0x1000, 0x1000, CRC(f167f10e) SHA1(d23043afe0f7a06fbec92b333d6db172523faf27) )
-	ROM_LOAD( "sz3.3d",     0x2000, 0x1000, CRC(ceb3c8f4) SHA1(e49f834637b4addcf362cd010e31802c3e145cbe) )
-	ROM_LOAD( "sz4.3e",     0x3000, 0x1000, CRC(3112af59) SHA1(3d4e5a74a13bdeaf07f059f8c3a0d2ca8cbb3d32) )
-	ROM_LOAD( "sz5.3fg",    0x4000, 0x1000, CRC(b494a993) SHA1(ed60cbaef2ac780c11426d29a612d34e76b29a0e) )
-	ROM_LOAD( "sz6.3h",     0x5000, 0x1000, CRC(09d5b9da) SHA1(636a8d4717df4ed1fc02fa83782fa8d96b88f969) )
-	ROM_LOAD( "sz7.3i",     0x6000, 0x1000, CRC(13052b03) SHA1(2866f2533a788f734310a74789f762f3fa17a57a) )
-	ROM_LOAD( "sz8.3j",     0x7000, 0x0800, CRC(019f9651) SHA1(2b030e7823b277fb6e3f37753a4d52d277e0e079) )
-
-	ROM_REGION( 0x4000, "gfx", 0 )
-	ROM_LOAD( "sz11.7k",    0x0000, 0x1000, CRC(fbd9b91d) SHA1(6b3581f4b518c058b970d569ced07dd7dc6a87e6) )
-	ROM_LOAD( "sz12.7m",    0x1000, 0x1000, CRC(2bdef9ad) SHA1(50fe41e81c1307317b4fb6b47bf0619d141c42ff) )
-	ROM_LOAD( "sz9.7j",     0x2000, 0x1000, CRC(4819f0cd) SHA1(fa8d371efc3198daf76ff1264e22673c5521becf) )
-	ROM_LOAD( "sz10.7h",    0x3000, 0x1000, CRC(4c268778) SHA1(a1444fb3eb397c8167d769aa1f935c5f19df4d6d) )
-
-	ROM_REGION( 0x0040, "proms", 0 ) // not dumped for this set
-	ROM_LOAD( "sz73.10c",   0x0000, 0x0020, BAD_DUMP CRC(4d218a3c) SHA1(26364dfdb7e13080357328a06c3bcf504778defd) )
-	ROM_LOAD( "sz74.10b",   0x0020, 0x0020, BAD_DUMP CRC(c550531c) SHA1(d564aeb8a99861d29e00cf968242fe6c6cec478b) )
-
-	ROM_REGION( 0x0100, "plds", 0 ) // not dumped for this set
-	ROM_LOAD( "pal16h2.3b", 0x0000, 0x0044, BAD_DUMP CRC(e1a6a86d) SHA1(740a5c2ef8a992f6a794c0fc4c81eb50cfcedc32) )
-ROM_END
-
 } // anonymous namespace
 
 
-GAME( 1981, friskyt,   0,        nvram,    friskyt,  seicross_state, empty_init,    ROT0,  "Nichibutsu",         "Frisky Tom (set 1)",                   MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1981, friskyta,  friskyt,  nvram,    friskyt,  seicross_state, empty_init,    ROT0,  "Nichibutsu",         "Frisky Tom (set 2)",                   MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1981, friskytb,  friskyt,  friskytb, friskyt,  seicross_state, empty_init,    ROT0,  "Nichibutsu",         "Frisky Tom (set 3)",                   MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1982, radrad,    0,        no_nvram, radrad,   seicross_state, empty_init,    ROT0,  "Nichibutsu USA",     "Radical Radial (US)",                  MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1983, radradj,   radrad,   no_nvram, radrad,   seicross_state, empty_init,    ROT0,  "Logitec Corp.",      "Radical Radial (Japan)",               MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1984, seicross,  0,        no_nvram, seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Seicross (set 1)",                     MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1984, seicrossa, seicross, no_nvram, seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Seicross (set 2)",                     MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1984, sectrzon,  seicross, no_nvram, seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Sector Zone (set 1)",                  MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1984, sectrzont, seicross, sectznt,  seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Sector Zone (set 2, Tecfri hardware)", MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
-GAME( 1984, sectrzona, seicross, no_nvram, seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Sector Zone (set 3)",                  MACHINE_NO_COCKTAIL | MACHINE_SUPPORTS_SAVE )
+GAME( 1981, friskyt,   0,        nvram,    friskyt,  seicross_state, empty_init,    ROT0,  "Nichibutsu", "Frisky Tom (set 1)", MACHINE_SUPPORTS_SAVE )
+GAME( 1981, friskyta,  friskyt,  nvram,    friskyt,  seicross_state, empty_init,    ROT0,  "Nichibutsu", "Frisky Tom (set 2)", MACHINE_SUPPORTS_SAVE )
+GAME( 1981, friskytb,  friskyt,  friskytb, friskyt,  seicross_state, empty_init,    ROT0,  "Nichibutsu", "Frisky Tom (set 3)", MACHINE_SUPPORTS_SAVE )
+
+GAME( 1982, radrad,    0,        no_nvram, radrad,   seicross_state, empty_init,    ROT0,  "Logitec Corp. (Nichibutsu USA license)", "Radical Radial (US)",    MACHINE_SUPPORTS_SAVE )
+GAME( 1983, radradj,   radrad,   no_nvram, radrad,   seicross_state, empty_init,    ROT0,  "Logitec Corp.",                          "Radical Radial (Japan)", MACHINE_SUPPORTS_SAVE )
+
+GAME( 1984, seicross,  0,        no_nvram, seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Seicross (set 1)",      MACHINE_SUPPORTS_SAVE )
+GAME( 1984, seicrossa, seicross, no_nvram, seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Seicross (set 2)",      MACHINE_SUPPORTS_SAVE )
+GAME( 1984, sectrzon,  seicross, no_nvram, seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Sector Zone (set 1)",   MACHINE_SUPPORTS_SAVE )
+GAME( 1984, sectrzona, seicross, no_nvram, seicross, seicross_state, empty_init,    ROT90, "Nichibutsu / Alice", "Sector Zone (set 2)",   MACHINE_SUPPORTS_SAVE )
+GAME( 1984, sectrzont, seicross, sectznt,  seicross, seicross_state, empty_init,    ROT90, "bootleg (Tecfri)",   "Sector Zone (bootleg)", MACHINE_SUPPORTS_SAVE )
