@@ -9290,6 +9290,7 @@ pockchal
 
 @source:bfm/bfcobra.cpp
 beeline
+brainbox2
 brkball
 escounts
 inquiztr
@@ -15955,7 +15956,9 @@ sfiii3
 sfiii3j
 sfiii3jr1
 sfiii3n
+sfiii3na
 sfiii3nr1
+sfiii3nar1
 sfiii3r1
 sfiii3u
 sfiii3ur1
@@ -17641,9 +17644,9 @@ mjmyornt
 mjmyorntr
 mjmyster
 mjmyuniv
-mjmyunivbl
-mjmyunivbl2
+mjmyunivh
 mjmywrld
+mjmywrldt
 mjreach1
 mjschuka
 mjtenho
@@ -17693,6 +17696,7 @@ mjdialq2
 mjdialq2a
 mjelct3
 mjelct3a
+mjelct3b
 mjelct3bl
 mjelctrb
 mjelctrn
@@ -17747,6 +17751,7 @@ dondenmj
 dragonmj
 dragonmj103
 ichiban
+ichiban235
 ippatsu
 jangtaku
 janoh
@@ -20651,9 +20656,9 @@ xyddz
 
 @source:igs/igspoker.cpp
 chleague
-chleagul
-chleagxa
-chleagxb
+chleaguel
+chleaguexa
+chleaguexb
 citalcup
 cpoker
 cpokerpk
@@ -20671,7 +20676,7 @@ igs_ncs2
 igstet341
 igstet342
 number10
-numbr10l
+number10l
 pktet346
 stellecu
 
@@ -20883,7 +20888,7 @@ jinhulu2
 jinhulu2100gi
 jinhulu2101is
 jinhulu2120gi
-sleyuan
+sleyuan2
 spk100
 spk102u
 spk102ua
@@ -27914,6 +27919,7 @@ schaserm
 searthie
 searthin
 searthina
+searthinc
 supinvsion
 sflush
 shuttlei
@@ -31389,9 +31395,13 @@ megaphx
 yoyospel
 
 @source:misc/menghong.cpp
-crzyddz2
+fkddz2
+jpddz
+jpddza
+jzst
 menghong
 menghonga
+sandayi
 
 @source:misc/meyc8080.cpp
 casbjack
@@ -31961,6 +31971,9 @@ spirulo
 
 @source:misc/pachifev.cpp
 pachifev
+
+@source:misc/paracaidista.cpp
+paraca
 
 @source:misc/pasha2.cpp
 pasha2
@@ -33938,6 +33951,9 @@ tactcian2
 @source:namco/rbowlorama.cpp
 rbowlorama
 
+@source:namco/sg_vga.cpp
+hplanet
+
 @source:namco/shootaway2.cpp
 shootaw2
 
@@ -34258,6 +34274,7 @@ kof95
 kof95a
 kof95h
 kof96
+kof96a
 kof96h
 kof97
 kof97h
@@ -40044,6 +40061,7 @@ powsledr
 powsledm
 rascot2
 rchase2
+rchase2a
 schamp
 segawski
 sfight
@@ -41516,6 +41534,7 @@ carnivalca
 carnivalh
 carnivalha
 carnivalmm
+colision
 depthch
 depthcho
 digger
@@ -42541,6 +42560,9 @@ basf7120
 @source:skeleton/bert.cpp
 bert
 
+@source:skeleton/biorhythm.cpp
+biorhthm
+
 @source:skeleton/bitgraph.cpp
 bitgrpha
 bitgrphb
@@ -42854,6 +42876,9 @@ poemzet2
 @source:skeleton/i7000.cpp
 i7000
 
+@source:skeleton/iam2.cpp
+zhonggmj
+
 @source:skeleton/icatel.cpp
 icatel
 
@@ -43040,6 +43065,9 @@ ngenb38
 @source:skeleton/nordlead.cpp
 nordle2x
 
+@source:skeleton/omdisv22.cpp
+omdisv22
+
 @source:skeleton/onyx.cpp
 c5000
 c8002
@@ -43064,9 +43092,6 @@ mpoker2b
 
 @source:skeleton/pap2.cpp
 pap2
-
-@source:skeleton/paracaidista.cpp
-paraca
 
 @source:skeleton/pcksurfer.cpp
 pcksurfer
@@ -43178,6 +43203,9 @@ sh4robot
 
 @source:skeleton/shine.cpp
 shine
+
+@source:skeleton/shoken_md06.cpp
+petitlot
 
 @source:skeleton/si5500.cpp
 si5500
@@ -44031,6 +44059,9 @@ anoworld
 @source:sunwise/jankenmn.cpp
 jankenmn
 
+@source:sunwise/jankmg2.cpp
+jankmg2
+
 @source:svi/svi318.cpp
 svi318
 svi318n
@@ -44120,6 +44151,7 @@ arkgcbla
 arktayt2
 block2
 brixian
+cruisin5
 hexa
 hexaa
 paddle2
@@ -44894,6 +44926,7 @@ fisco400
 gunman
 missilex
 srdchamp
+speedrac
 ttblock
 ttsracec
 zzblock
