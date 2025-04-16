@@ -16189,6 +16189,9 @@ casloopy
 cfx9850
 cfx9850gb
 
+@source:casio/cps2000.cpp
+cps2000
+
 @source:casio/ct8000.cpp
 ct8000
 ctfk1
@@ -20577,6 +20580,7 @@ cjddzp
 cjddzps
 cjddzs
 cjddzsa
+cjdh6th
 cjtljp
 extradrw
 fruitpar
@@ -29178,6 +29182,7 @@ dojokkot
 fishbatl
 hhunter
 itazurac
+katori
 mmhammer
 rodeokng
 shpchamp
@@ -31907,6 +31912,7 @@ cdrawpkr
 cgip23b
 cgip30b
 cgip30cs
+cgip30e
 cgidjp
 ddellf96
 ddellf97
@@ -31926,8 +31932,15 @@ drhla
 fastdrwp
 gtipoker
 gtipokra
+gtipokrb
+hilokimb
 kimbldhl
 kimblz80
+krampcb2
+krampcb3
+krampcb4
+krampcb5
+krampcb6
 mainline
 ndxron10
 newhilop
@@ -31940,6 +31953,7 @@ norautjo
 norautjp
 norautn1a
 norautp
+norautpb
 norautpl
 norautpn
 norautpt
@@ -31950,11 +31964,15 @@ norautua
 norautub
 pkii_dm
 pma
+pokplus
+pokplusa
+pokplusb
 smshilo
 ssjkrpkr
 sureshoto
 tpoker2
-unkljfpk
+tpoker2a
+tpoker2b
 winbnk88
 
 @source:misc/notechan.cpp
@@ -36837,6 +36855,7 @@ condorva
 falcon
 falconz
 fenix
+fenixexpl
 fenixn
 griffon
 griffono
@@ -42370,11 +42389,14 @@ gocowboy
 gunkids
 haekaka
 itazuram
+kingyosu
+kotekita
 lufykzku
 mnrockman
 pepsiman
 pyenaget
 sammymdl
+shatekds
 sushimar
 tbeastw2
 tdoboon
@@ -42565,6 +42587,7 @@ cmcwa
 cscaoysd
 dbzbgck
 gyakyu
+kghmytda
 satoyama
 unkbpmed
 youkai
@@ -44297,6 +44320,7 @@ dariusu
 @source:taito/dinoking.cpp
 dkbattle
 dkkids
+hkuranai
 
 @source:taito/exzisus.cpp
 exzisus
