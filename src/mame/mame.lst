@@ -16228,6 +16228,11 @@ fp1100
 @source:casio/fp6000.cpp
 fp6000
 
+@source:casio/fz1.cpp
+fz1
+fz10m
+fz20m
+
 @source:casio/ht6000.cpp
 ht6000
 
@@ -20588,7 +20593,8 @@ fruitpar
 fruitpar206us
 gonefsh2
 jking02
-klxyj
+klxyj102cn
+klxyj104cn
 lhdmg
 lhdmgp
 lhdmgp200c3m
