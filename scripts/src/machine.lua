@@ -1972,18 +1972,6 @@ end
 
 ---------------------------------------------------
 --
---@src/devices/machine/lc89510.h,MACHINES["LC89510"] = true
----------------------------------------------------
-
-if (MACHINES["LC89510"]~=null) then
-	files {
-		MAME_DIR .. "src/devices/machine/lc89510.cpp",
-		MAME_DIR .. "src/devices/machine/lc89510.h",
-	}
-end
-
----------------------------------------------------
---
 --@src/devices/machine/ldpr8210.h,MACHINES["LDPR8210"] = true
 ---------------------------------------------------
 
@@ -3926,6 +3914,18 @@ if (MACHINES["VIC_PL192"]~=null) then
 	files {
 		MAME_DIR .. "src/devices/machine/vic_pl192.cpp",
 		MAME_DIR .. "src/devices/machine/vic_pl192.h",
+	}
+end
+
+---------------------------------------------------
+--
+--@src/devices/machine/votraxtnt.h,MACHINES["VOTRAXTNT"] = true
+---------------------------------------------------
+
+if (MACHINES["VOTRAXTNT"]~=null) then
+	files {
+		MAME_DIR .. "src/devices/machine/votraxtnt.cpp",
+		MAME_DIR .. "src/devices/machine/votraxtnt.h",
 	}
 end
 

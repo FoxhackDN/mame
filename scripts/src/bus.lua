@@ -2177,10 +2177,16 @@ end
 
 if (BUSES["MZ80"]~=null) then
 	files {
+		MAME_DIR .. "src/devices/bus/mz80/ar_romcard.cpp",
+		MAME_DIR .. "src/devices/bus/mz80/ar_romcard.h",
+		MAME_DIR .. "src/devices/bus/mz80/mz1e05.cpp",
+		MAME_DIR .. "src/devices/bus/mz80/mz1e05.h",
 		MAME_DIR .. "src/devices/bus/mz80/mz1e30.cpp",
 		MAME_DIR .. "src/devices/bus/mz80/mz1e30.h",
 		MAME_DIR .. "src/devices/bus/mz80/mz1e35.cpp",
 		MAME_DIR .. "src/devices/bus/mz80/mz1e35.h",
+		MAME_DIR .. "src/devices/bus/mz80/mz1r18.cpp",
+		MAME_DIR .. "src/devices/bus/mz80/mz1r18.h",
 		MAME_DIR .. "src/devices/bus/mz80/mz1r37.cpp",
 		MAME_DIR .. "src/devices/bus/mz80/mz1r37.h",
 		MAME_DIR .. "src/devices/bus/mz80/mz80_exp.cpp",
@@ -3436,6 +3442,8 @@ if (BUSES["RS232"]~=null) then
 		MAME_DIR .. "src/devices/bus/rs232/teletex800.h",
 		MAME_DIR .. "src/devices/bus/rs232/terminal.cpp",
 		MAME_DIR .. "src/devices/bus/rs232/terminal.h",
+		MAME_DIR .. "src/devices/bus/rs232/votraxtnt.cpp",
+		MAME_DIR .. "src/devices/bus/rs232/votraxtnt.h",
 		MAME_DIR .. "src/devices/bus/rs232/xvd701.cpp",
 		MAME_DIR .. "src/devices/bus/rs232/xvd701.h",
 	}

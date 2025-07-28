@@ -315,8 +315,10 @@ yukongl5
 
 @source:acorn/atom.cpp
 atom
-atombb
-atomeb
+atombbc
+atomes
+atomrr
+prophet2
 
 @source:acorn/bbc.cpp
 abc110
@@ -1496,6 +1498,7 @@ luckycoin
 lwitch
 magibomb
 magibomb_a30
+magibomb_a31
 magibomb_a36a
 magibomb_a40a
 magibomb_a40aa
@@ -1506,7 +1509,6 @@ magibomb_aa71a
 magibomb_aa72c
 magibomb_aa72d
 magibomb_aa73a
-magibomb_ab31
 magibomb_ab42
 magibomb_ab43a
 magibomb_ab43aa
@@ -17777,6 +17779,8 @@ mjelct3
 mjelct3a
 mjelct3b
 mjelct3bl
+mjelct3bla
+mjelct3blb
 mjelctrb
 mjelctrn
 mjembase
@@ -19248,6 +19252,7 @@ drivfrcb
 drivfrcg
 drivfrcsg
 drivfrcsga
+drivfrcsgb
 drivfrct
 froggerv
 hexpool
@@ -20563,6 +20568,7 @@ hamhouse
 hamhouse9
 jkrmast
 jkrmasta
+jpknight
 kkotnoli
 ladylinr
 ladylinra
@@ -20668,6 +20674,7 @@ super7
 super9
 super9a
 super972
+superdrg
 tcl
 tonypok
 top7
@@ -20861,6 +20868,7 @@ cjdh2c
 cjdh2d
 cjgdy
 dahuaxy
+hlddz
 huoqilin
 igsm312
 jhzb
@@ -20877,6 +20885,7 @@ super70s
 sydh
 xyddz
 xydn
+zjddz
 
 @source:igs/igspoker.cpp
 chleague
@@ -21110,6 +21119,7 @@ huahuas2a
 huluw2
 jbell
 jinhuang
+jinhuang2
 jinhulu2
 jinhulu2100gi
 jinhulu2101is
@@ -29753,6 +29763,14 @@ unktax
 @source:misc/bntyhunt.cpp
 bntyhunt
 
+@source:misc/boramz80.cpp
+pkboram
+pkrboram
+pkts
+tpkboram
+tpkborama
+tpkg2
+
 @source:misc/brglitz.cpp
 brglitz
 
@@ -31079,6 +31097,7 @@ nfsug
 
 @source:misc/gluck2.cpp
 gluck2
+unkyungyu
 
 @source:misc/gms.cpp
 baile
@@ -31205,6 +31224,9 @@ sloco93a
 super21p
 super98
 superdbl
+unkicpf40
+unkicpf80
+unkwingpkr
 videtrna
 videtron
 videtron2
@@ -33766,7 +33788,8 @@ cgangpzl
 cgangpzlj
 emeralda
 emeraldaj
-emeraldaja
+emeraldajb
+emeraldajd
 exvania
 exvaniaj
 fa
@@ -34153,7 +34176,6 @@ alpinerc
 alpinerd
 alpinerjc
 alpines
-alpinesa
 alpinr2a
 alpinr2b
 aquajet
@@ -34205,12 +34227,9 @@ gunwars
 gunwarsa
 motoxgo
 motoxgov1a
-motoxgov1a2
 motoxgov2a
-motoxgov2a2
 panicprk
 panicprkj
-panicprkj2
 raceon
 raceonj
 rapidrvr
@@ -35470,35 +35489,20 @@ vsmaxtx2
 wfmotor
 
 @source:nintendo/nes_vt32.cpp
-bittboy
 dgun2573
 dgun2573a
 dgunl3201
 dgunl3202
-fapocket
 fcpocket
-g5_500
-g9_666
-gbox2019
 goretrop
-gprnrs1
-gprnrs16
-hhgc319
 lxpcli
 lxpcsp
 matet100
 matet220
 matet300
-mc_7x6ss
-mc_8x6ss
-mc_9x6sa
-mc_9x6ss
-mc_hh210
 myaasa
 myaass
 mymman
-retro400
-rfcp168
 rminitv
 typo240
 
@@ -35568,6 +35572,23 @@ unk128vt
 unkra200
 vibes240
 zonefusn
+
+@source:nintendo/nes_vt42xx.cpp
+bittboy
+fapocket
+g5_500
+g9_666
+gbox2019
+gprnrs1
+gprnrs16
+hhgc319
+mc_7x6ss
+mc_8x6ss
+mc_9x6sa
+mc_9x6ss
+mc_hh210
+retro400
+rfcp168
 
 @source:nintendo/nss.cpp
 nss
@@ -39915,6 +39936,7 @@ prschess
 @source:saitek/renaissance.cpp
 renaissa
 renaissaa
+renaissab
 
 @source:saitek/risc2500.cpp
 montreux
@@ -41835,6 +41857,7 @@ bayrouteb1
 bayrouteb2
 beautyb
 bloxeedbl
+cltchitrbl
 ddcrewbl
 dduxbl
 eswatbl
@@ -42663,8 +42686,10 @@ mz2520
 @source:sharp/mz3500.cpp
 mz3500
 
-@source:sharp/mz6500.cpp
+@source:sharp/mz5500.cpp
+mz5500
 mz6500
+mz6550
 
 @source:sharp/pc1500.cpp
 pc1500
@@ -43005,14 +43030,6 @@ bolsaint
 
 @source:skeleton/boo.cpp
 boo1000
-
-@source:skeleton/boramz80.cpp
-pkboram
-pkrboram
-pkts
-tpkboram
-tpkborama
-tpkg2
 
 @source:skeleton/bpmmicro.cpp
 bp1200
@@ -43355,6 +43372,9 @@ itt9216
 
 @source:skeleton/jade.cpp
 jade
+
+@source:skeleton/jinhuang6.cpp
+jinhuang6
 
 @source:skeleton/jonos.cpp
 jonos
@@ -46200,6 +46220,7 @@ batsugunb
 batsugunc
 batsugunbl
 batsugunsp
+dogyuunbl
 
 @source:toaplan/dogyuun.cpp
 dogyuun
@@ -46715,6 +46736,7 @@ bkid218
 
 @source:tvgames/generalplus_gpl32612.cpp
 anpanm19
+arcadege
 dmnslayg
 jak_swbstrik
 jak_tmnthp
@@ -46723,6 +46745,7 @@ jak_ddhp
 jak_prhp
 kidizmb
 kidizmp
+pdcm2
 pocketmp
 pocketmr
 zippity
@@ -46752,6 +46775,9 @@ mmahjong
 @source:tvgames/monkey_king_3b.cpp
 afbp4
 rs70_648
+
+@source:tvgames/myaatari.cpp
+myaatari
 
 @source:tvgames/pubint_storyreader.cpp
 pi_stry
@@ -46830,6 +46856,7 @@ jjstrip
 jouet
 knd
 lexiart
+lexibds
 lpetshop
 lxairjet
 lxspidaj
@@ -46980,7 +47007,10 @@ pdc100
 pdc150t
 pdc200
 tmntpdc
+vjpp1
 vjpp2
+vjpp3
+vjpp4
 
 @source:tvgames/spg2xx_playvision.cpp
 pvmil
@@ -48040,6 +48070,7 @@ wicat
 
 @source:wing/luckgrln.cpp
 7smash
+7smasha
 luckgrln
 luckstrn
 luckstrna
