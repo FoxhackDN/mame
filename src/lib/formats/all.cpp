@@ -799,7 +799,6 @@ void mame_formats_full_list(mame_formats_enumerator &en)
 	en.add(FLOPPY_A213S_FORMAT); // ap2_dsk.h
 	en.add(FLOPPY_A216S_DOS_FORMAT); // ap2_dsk.h
 	en.add(FLOPPY_A216S_PRODOS_FORMAT); // ap2_dsk.h
-	en.add(FLOPPY_RWTS18_FORMAT); // ap2_dsk.h
 	en.add(FLOPPY_EDD_FORMAT); // ap2_dsk.h
 	en.add(FLOPPY_NIB_FORMAT); // ap2_dsk.h
 #endif
@@ -1229,6 +1228,9 @@ void mame_formats_full_list(mame_formats_enumerator &en)
 	en.category("MSX");
 #ifdef HAS_FORMATS_FMSX_CAS
 	en.add(fmsx_cassette_formats); // fmsx_cas.h
+#endif
+#ifdef HAS_FORMATS_TZX_CAS
+	en.add(tsx_cassette_formats); // tzx_cas.h
 #endif
 #ifdef HAS_FORMATS_MSX_DSK
 	en.add(FLOPPY_MSX_FORMAT); // msx_dsk.h

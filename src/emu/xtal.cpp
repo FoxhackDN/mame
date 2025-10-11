@@ -292,6 +292,7 @@ const double XTAL::known_xtals[] = {
 	 16'588'800, // 16.5888_MHz_XTAL       SM 7238
 	 16'666'600, // 16.6666_MHz_XTAL       Firebeat GCU
 	 16'667'000, // 16.667_MHz_XTAL        Visual XDS-19P
+	 16'668'000, // 16.668_MHz_XTAL        Hoei Future Flash
 	 16'669'800, // 16.6698_MHz_XTAL       Qume QVT-102
 	 16'670'000, // 16.67_MHz_XTAL         -
 	 16'777'216, // 16.777216_MHz_XTAL     Nintendo Game Boy Advance
@@ -475,6 +476,7 @@ const double XTAL::known_xtals[] = {
 	 45'830'400, // 45.8304_MHz_XTAL       Microterm 5510
 	 46'615'120, // 46.61512_MHz_XTAL      Soundblaster 16 PCM base clock
 	 47'736'000, // 47.736_MHz_XTAL        Visual 100
+	 47'843'000, // 47.843_MHz_XTAL        Sord Future 32a
 	 48'000'000, // 48_MHz_XTAL            Williams/Midway Y/Z-unit system / SSV board
 	 48'384'000, // 48.384_MHz_XTAL        Namco NB-1
 	 48'556'800, // 48.5568_MHz_XTAL       Wyse WY-85

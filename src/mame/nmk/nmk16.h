@@ -76,6 +76,7 @@ public:
 	void strahljbl(machine_config &config) ATTR_COLD;
 	void tdragon3h(machine_config &config) ATTR_COLD;
 	void macross(machine_config &config) ATTR_COLD;
+	void macrossbl(machine_config &config) ATTR_COLD;
 	void mustang(machine_config &config) ATTR_COLD;
 	void mustangb(machine_config &config) ATTR_COLD;
 	void mustangb3(machine_config &config) ATTR_COLD;
@@ -101,6 +102,7 @@ public:
 	void init_bjtwin() ATTR_COLD;
 	void init_powerinsa() ATTR_COLD;
 	void init_acrobatmbl() ATTR_COLD;
+	void init_macrossbl() ATTR_COLD;
 
 protected:
 	virtual void machine_start() override ATTR_COLD;
@@ -194,6 +196,7 @@ protected:
 	TILE_GET_INFO_MEMBER(bioship_get_bg_tile_info);
 	TILE_GET_INFO_MEMBER(bjtwin_get_bg_tile_info);
 	TILE_GET_INFO_MEMBER(powerins_get_bg_tile_info);
+	DECLARE_VIDEO_START(manybloc);
 	DECLARE_VIDEO_START(macross);
 	DECLARE_VIDEO_START(bioship);
 	DECLARE_VIDEO_START(strahl);
@@ -239,6 +242,7 @@ protected:
 	void macross2_sound_io_map(address_map &map) ATTR_COLD;
 	void macross2_sound_map(address_map &map) ATTR_COLD;
 	void macross_map(address_map &map) ATTR_COLD;
+	void macrossbl_map(address_map &map) ATTR_COLD;
 	void manybloc_map(address_map &map) ATTR_COLD;
 	void mustang_map(address_map &map) ATTR_COLD;
 	void mustangb_map(address_map &map) ATTR_COLD;
