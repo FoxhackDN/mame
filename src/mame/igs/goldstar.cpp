@@ -349,6 +349,7 @@ public:
 	void init_ladylinrc() ATTR_COLD;
 	void init_ladylinrd() ATTR_COLD;
 	void init_ladylinre() ATTR_COLD;
+	void init_moonlghtb() ATTR_COLD;
 	void init_super9() ATTR_COLD;
 	void init_wcherry() ATTR_COLD;
 
@@ -477,6 +478,7 @@ public:
 	void init_cmtetriskr() ATTR_COLD;
 	void init_cmv4() ATTR_COLD;
 	void init_crazybonb() ATTR_COLD;
+	void init_cutya() ATTR_COLD;
 	void init_eldoraddoa() ATTR_COLD;
 	void init_fb2010() ATTR_COLD;
 	void init_hamhouse() ATTR_COLD;
@@ -24933,6 +24935,36 @@ ROM_START( feverchtw )
 	ROM_LOAD( "82s123.10d", 0x100, 0x0020, CRC(71670863) SHA1(bd0d18c55774db7720413632d130cf3790fca1ad) )
 ROM_END
 
+// W-6 for W-4 hardware...
+ROM_START( feverchw4 )
+	ROM_REGION( 0x10000, "maincpu", 0 )
+	ROM_LOAD( "8.b14",  0x00000, 0x8000, CRC(3bdc197c) SHA1(6552d9343442e7bbbd713f299219b63e423a79b4) )
+
+	ROM_REGION( 0x18000, "gfx1", 0 )
+	ROM_LOAD( "5.h7",   0x00000, 0x8000, CRC(3f52c063) SHA1(a53042b1285ed1cd853aa54b5c58deccf7eb2693) )
+	ROM_LOAD( "6.h8",   0x08000, 0x8000, CRC(9dace485) SHA1(8b7f0ce84334252285db60c8d9e16d2b17d67cb6) )
+	ROM_LOAD( "7.h10",  0x10000, 0x8000, CRC(77a6ee8f) SHA1(46d437089729db004a54e35c79c3c95ef169695b) )
+
+	ROM_REGION( 0x8000, "gfx2", 0 )
+	ROM_LOAD( "1.h1",   0x0000, 0x2000, CRC(c2f72d5f) SHA1(3e4f37a60931a417929255e782d8f7f219d8ebd0) )
+	ROM_LOAD( "2.h3",   0x2000, 0x2000, CRC(b4a0f2ad) SHA1(f68d5134156b646c5eeadbab6bdc21507018eafa) )
+	ROM_LOAD( "3.h4",   0x4000, 0x2000, CRC(464997a3) SHA1(e56bc0f52dbb3689c38d357e24914e7688254534) )
+	ROM_LOAD( "4.h6",   0x6000, 0x2000, CRC(bc3a09c4) SHA1(952dcd4aace87fd7249fc2391c8b4832fa17b083) )
+
+	ROM_REGION( 0x200, "proms", 0 )
+	ROM_LOAD( "82s129.g13", 0x0000, 0x0100, CRC(23e81049) SHA1(78071dae70fad870e972d944642fb3a2374be5e4) )
+	ROM_LOAD( "82s129.g14", 0x0100, 0x0100, CRC(526cf9d3) SHA1(eb779d70f2507d0f26d225ac8f5de8f2243599ca) )
+
+	ROM_REGION( 0x20, "proms2", 0 )
+	ROM_LOAD( "82s123.d13", 0x0000, 0x0020, CRC(c6b41352) SHA1(d7c3b5aa32e4e456c9432a13bede1db6d62eb270) )
+
+	ROM_REGION( 0x100, "unkprom", 0 )
+	ROM_LOAD( "82s129.f3", 0x0000, 0x0100, CRC(bd48de71) SHA1(e4fa1e774af1499bc568be5b2deabb859d8c8172) )
+
+	ROM_REGION( 0x20, "unkprom2", 0 )
+	ROM_LOAD( "82s123.d12", 0x0000, 0x0020, CRC(6df3f972) SHA1(0096a7f7452b70cac6c0752cb62e24b643015b5c) )
+ROM_END
+
 /*
   Win Cherry (ver 0.16 - 19990219)
 
@@ -28751,6 +28783,25 @@ void unkch_state::init_boncha()
 	rom[0x5d04] = 0x77;
 }
 
+void goldstar_state::init_moonlghtb()
+{
+	// masking the reels
+	uint8_t *rom = memregion("maincpu")->base();
+
+	rom[0xc780] = 0x00;   // black
+
+}
+
+void cmaster_state::init_cutya()
+{
+	init_cmv4();
+
+	uint8_t *rom = memregion("maincpu")->base();
+	rom[0x02e6] = 0x83;  // jp 0301 -> jp 8301  start
+	rom[0x8f51] = 0x84;  // jp 4423 -> jp 8423  loop attract ok
+}
+
+
 } // anonymous namespace
 
 
@@ -28766,8 +28817,8 @@ GAMEL( 199?, goldstar,   0,        goldstar, goldstar, goldstar_state, init_gold
 GAMEL( 199?, goldstbl,   goldstar, goldstbl, goldstar, goldstar_state, empty_init,     ROT0, "IGS",               "Golden Star (Blue version)",                  0,                 layout_goldstar )
 GAME(  199?, moonlght,   goldstar, moonlght, goldstar, goldstar_state, empty_init,     ROT0, "bootleg",           "Moon Light (v.0629, low program)",            0 )
 GAME(  199?, moonlghta,  goldstar, moonlght, goldstar, goldstar_state, empty_init,     ROT0, "bootleg",           "Moon Light (v.0629, high program)",           0 )
-GAME(  199?, moonlghtb,  goldstar, moonlght, goldstar, goldstar_state, empty_init,     ROT0, "bootleg",           "Moon Light (v.02L0A, low program)",           MACHINE_IMPERFECT_COLORS )  // need to check the odd palette value at 0xc780. should be black.
-GAME(  199?, moonlghtc,  goldstar, moonlght, goldstar, goldstar_state, empty_init,     ROT0, "bootleg",           "Moon Light (v.02L0A, high program, alt gfx)", MACHINE_IMPERFECT_COLORS )  // need to check the odd palette value at 0xc780. should be black.
+GAME(  199?, moonlghtb,  goldstar, moonlght, goldstar, goldstar_state, init_moonlghtb, ROT0, "bootleg",           "Moon Light (v.02L0A, low program)",           0 )
+GAME(  199?, moonlghtc,  goldstar, moonlght, goldstar, goldstar_state, init_moonlghtb, ROT0, "bootleg",           "Moon Light (v.02L0A, high program, alt gfx)", 0 )
 GAME(  199?, gregular,   goldstar, moonlght, gregular, goldstar_state, empty_init,     ROT0, "bootleg (Playmark)","Golden Regular (version 388/2000)",           0 )                         // hacked to only hand pay
 GAMEL( 199?, chrygld,    0,        chrygld,  chrygld,  cb3_state,      init_chrygld,   ROT0, "bootleg",           "Cherry Gold I (set 1)",                       0,                 layout_chrygld )
 GAMEL( 199?, chry10,     0,        chrygld,  chry10,   cb3_state,      init_chry10,    ROT0, "bootleg",           "Cherry 10 (bootleg with PIC16F84)",           0,                 layout_chrygld )
@@ -28838,7 +28889,7 @@ GAMEL( 1991, cmasterl,   cmaster,  cm,       cmasterb, cmaster_state,  init_cmv4
 GAMEL( 1991, skillmst,   cmaster,  cm,       cmasterb, cmaster_state,  init_cmv4,      ROT0, "bootleg",           "Skill Master (ver.fst v5.0)",                 0,                 layout_cmasterb )
 GAMEL( 1991, skillmsta,  cmaster,  cm,       cmasterb, cmaster_state,  init_cmv4,      ROT0, "bootleg",           "Skill Master (ver.fst v3.0)",                 0,                 layout_cmasterb )
 GAMEL( 1991, cutyline,   0,        cm,       cmasterb, cmaster_state,  init_cmv4,      ROT0, "Dyna",              "Cuty Line (LC-88, ver.1.01)",                 0,                 layout_cmasterb )
-GAMEL( 1991, cutylinea,  cutyline, cm,       cmasterb, cmaster_state,  init_cmv4,      ROT0, "bootleg",           "Cuty Line (LC-88 bootleg, ver.8.05C)",        MACHINE_NOT_WORKING, layout_cmasterb ) // needs correct memory map
+GAMEL( 1991, cutylinea,  cutyline, cm,       cmasterb, cmaster_state,  init_cutya,     ROT0, "bootleg",           "Cuty Line (LC-88 bootleg, ver.8.05C)",        MACHINE_NOT_WORKING, layout_cmasterb ) // needs correct memory map
 GAMEL( 1991, cutylineb,  cutyline, cutylineb,cmasterb, cmaster_state,  init_cmv4,      ROT0, "bootleg",           "Cuty Line (LC-88 bootleg, ver.7C.14)",        MACHINE_NOT_WORKING, layout_cmasterb ) // needs correct memory map
 GAMEL( 1991, cutylinec,  cutyline, cm,       cmasterb, cmaster_state,  init_cmv4,      ROT0, "bootleg",           "Cuty Line (LC-88 bootleg, ver.7.07C)",        MACHINE_NOT_WORKING, layout_cmasterb ) // needs correct memory map
 GAMEL( 1991, lonestar,   cmaster,  cm,       cmasterh, cmaster_state,  init_cmv4,      ROT0, "bootleg",           "Lonestar Roundup (set 1)",                    0,                 layout_cmasterb )
@@ -28976,6 +29027,7 @@ GAME(  199?, fl7_tw,     fl7_50,   flam7_tw, flaming7, wingco_state,   init_flam
 GAMEL( 1986, feverch,    0,        feverch,  feverch,  wingco_state,   empty_init,     ROT0, "Wing Co., Ltd.",    "Fever Chance (W-6, Japan, set 1)",                         0,          layout_lucky8 )
 GAMEL( 1986, fevercha,   feverch,  feverch,  feverch,  wingco_state,   empty_init,     ROT0, "Wing Co., Ltd.",    "Fever Chance (W-6, Japan, set 2)",                         0,          layout_lucky8 )
 GAMEL( 1986, feverchtw,  feverch,  feverch,  feverch,  wingco_state,   empty_init,     ROT0, "Yamate",            "Fever Chance (W-6, Taiwan)",                               0,          layout_lucky8 )
+GAME(  1986, feverchw4,  feverch,  lucky8t,  lucky8t,  wingco_state,   empty_init,     ROT0, "bootleg",           "Fever Chance (W-6, cross-system for W-4)",                 MACHINE_IMPERFECT_GRAPHICS | MACHINE_NOT_WORKING )
 
 // --- Wing W-7 hardware ---
 GAMEL( 1991, megaline,   0,        megaline, megaline, wingco_state,   init_mgln,      ROT0, "Fun World",         "Mega Lines (Wing W-7 System)",                             0,          layout_megaline )
