@@ -828,8 +828,8 @@ public:
 		m_screen(*this, "screen"),
 		m_palette(*this, "palette"),
 		m_hopper(*this, "hopper"),
+		m_nvram(*this, "nvram"),
 		m_decrypted_opcodes(*this, "decrypted_opcodes"),
-		m_nvram(*this, "nvramx"),
 		m_lamps(*this, "lamp%u", 0U)
 	{ }
 
@@ -916,11 +916,9 @@ private:
 	required_device<screen_device> m_screen;
 	required_device<palette_device> m_palette;
 	required_device<ticket_dispenser_device> m_hopper;
+	required_shared_ptr<uint8_t> m_nvram;
 	optional_shared_ptr<uint8_t> m_decrypted_opcodes;
-	optional_device<nvram_device> m_nvram;
 	output_finder<12> m_lamps;
-
-	std::unique_ptr<uint8_t[]> m_nvram8;
 
 	bool m_display_line_control = false;
 	bool m_nvunlock = false;
@@ -936,9 +934,6 @@ private:
 void norautp_state::machine_start()
 {
 	m_lamps.resolve();
-	m_nvram8 = std::make_unique<uint8_t[]>(TP_NVRAM_SIZE);
-	if(m_nvram != NULL)
-		m_nvram->set_base(m_nvram8.get(),TP_NVRAM_SIZE);
 	save_item(NAME(m_videoram));
 	save_item(NAME(m_nvunlock));
 }
@@ -1238,17 +1233,17 @@ void norautp_state::nvram_w(offs_t offset, uint8_t data)
 	if((offset >= 0x700) && (offset < 0x70a))
 	{
 		if(m_nvunlock)
-			m_nvram8[offset] = data;
+			m_nvram[offset] = data;
 		else
 			logerror("nvram(w) locked: offs:%04x - data: %02x\n", offset, data);
 	}
 	else
-		m_nvram8[offset] = data;
+		m_nvram[offset] = data;
 
-	m_nvram8[0x721] = 0x00;
-	m_nvram8[0x725] = 0x01;
+	m_nvram[0x721] = 0x00;
+	m_nvram[0x725] = 0x01;
 	if((offset == 0x724) && (data == 6))
-		m_nvram8[0x724] = 0xff;
+		m_nvram[0x724] = 0xff;
 
 	m_nvunlock = false;
 }
@@ -1259,19 +1254,19 @@ uint8_t norautp_state::nvram_r(offs_t offset)
 //  for testing purposes
 //  sets: tpoker2a, tpoker2b
 
-	m_nvram8[0x70b] = 0xa8;
-	m_nvram8[0x70c] = 0xb8;
-	m_nvram8[0x70d] = 0xc8;
-	m_nvram8[0x70e] = 0xd8;
-	m_nvram8[0x70f] = 0xe8;
+	m_nvram[0x70b] = 0xa8;
+	m_nvram[0x70c] = 0xb8;
+	m_nvram[0x70d] = 0xc8;
+	m_nvram[0x70e] = 0xd8;
+	m_nvram[0x70f] = 0xe8;
 
-	m_nvram8[0x710] = 0x20;
-	m_nvram8[0x711] = 0x30;
-	m_nvram8[0x712] = 0x40;
-	m_nvram8[0x713] = 0x50;
-	m_nvram8[0x714] = 0x60;
+	m_nvram[0x710] = 0x20;
+	m_nvram[0x711] = 0x30;
+	m_nvram[0x712] = 0x40;
+	m_nvram[0x713] = 0x50;
+	m_nvram[0x714] = 0x60;
 
-	return m_nvram8[offset];
+	return m_nvram[offset];
 }
 
 
@@ -1337,7 +1332,7 @@ void norautp_state::norautp_map(address_map &map)
 {
 	map.global_mask(0x3fff);
 	map(0x0000, 0x1fff).rom();
-	map(0x2000, 0x27ff).ram().share("nvram");   // 6116
+	map(0x2000, 0x27ff).ram().share(m_nvram);   // 6116
 }
 
 void norautp_state::decrypted_opcodes_map(address_map &map)
@@ -1374,26 +1369,26 @@ void norautp_state::nortest1_map(address_map &map)
 {
 	map.global_mask(0x7fff);
 	map(0x0000, 0x2fff).rom();
-	map(0x5000, 0x57ff).ram().share("nvram");
+	map(0x5000, 0x57ff).ram().share(m_nvram);
 }
 
 void norautp_state::norautxp_map(address_map &map)
 {
 	map.global_mask(0x7fff);
 	map(0x0000, 0x3fff).rom();  // need to be checked
-	map(0x6000, 0x67ff).ram().share("nvram");  // HM6116
+	map(0x6000, 0x67ff).ram().share(m_nvram);  // HM6116
 }
 
 void norautp_state::norautx4_map(address_map &map)
 {
 	map(0x0000, 0x3fff).rom();
-	map(0x6000, 0x67ff).ram().share("nvram");  // 6116
+	map(0x6000, 0x67ff).ram().share(m_nvram);  // 6116
 }
 
 void norautp_state::noraut3_map(address_map &map)
 {
 	map(0x0000, 0x3fff).rom().region("maincpu", 0x4000);
-	map(0x6000, 0x67ff).ram().share("nvram");  // 6116
+	map(0x6000, 0x67ff).ram().share(m_nvram);  // 6116
 	map(0x8000, 0xbfff).rom().region("maincpu", 0xc000);
 }
 
@@ -1406,7 +1401,7 @@ void norautp_state::noraut3_decrypted_opcodes_map(address_map &map)
 void norautp_state::kimble_map(address_map &map)
 {
 	map(0x0000, 0xbfff).rom();
-	map(0xc000, 0xc7ff).ram().share("nvram");
+	map(0xc000, 0xc7ff).ram().share(m_nvram);
 	map(0xc800, 0xcfff).ram();  // working RAM?
 }
 
@@ -1414,7 +1409,7 @@ void norautp_state::cgidjp_map(address_map &map)
 {
 	map.global_mask(0x3fff);
 	map(0x0000, 0x1fff).rom().region("maincpu", 0x2000);
-	map(0x2000, 0x27ff).ram().share("nvram");   // 6116
+	map(0x2000, 0x27ff).ram().share(m_nvram);   // 6116
 }
 
 void norautp_state::cgidjp_opcodes_map(address_map &map)
@@ -1430,15 +1425,15 @@ void norautp_state::dphl_map(address_map &map)
 {
 	map.global_mask(0x7fff);  // A15 not connected
 	map(0x0000, 0x3fff).rom();
-	map(0x5000, 0x53ff).ram().share("nvram");  // should be 2x 0x100 segments (4x 2111)
+	map(0x5000, 0x53ff).ram().share(m_nvram);  // should be 2x 0x100 segments (4x 2111)
 }
 
 void norautp_state::gtipa_map(address_map &map)
 {
 	//map.global_mask(0x7fff);  // A15 not connected
 	map(0x0000, 0x3fff).rom();
-	map(0xc000, 0xc3ff).ram().share("nvram");
-	map(0xd000, 0xd3ff).ram().share("nvram");
+	map(0xc000, 0xc3ff).ram().share(m_nvram);
+	map(0xd000, 0xd3ff).ram().share(m_nvram);
 
 }
 
@@ -1446,27 +1441,27 @@ void norautp_state::dphla_map(address_map &map)
 {
 	map.global_mask(0x3fff);
 	map(0x0000, 0x1fff).rom();
-	map(0x2000, 0x23ff).ram().share("nvram");
+	map(0x2000, 0x23ff).ram().share(m_nvram);
 }
 
 void norautp_state::dphlxtnd_map(address_map &map)
 {
 	map(0x0000, 0xbfff).rom();
-	map(0xc000, 0xc3ff).ram().share("nvram");  // should be 2x 0x100 segments (4x 2111)
+	map(0xc000, 0xc3ff).ram().share(m_nvram);  // should be 2x 0x100 segments (4x 2111)
 }
 
 void norautp_state::ssjkrpkr_map(address_map &map)
 {
 	map.global_mask(0x7fff);
 	map(0x0000, 0x1fff).rom();
-	map(0x4000, 0x43ff).ram().share("nvram");
+	map(0x4000, 0x43ff).ram().share(m_nvram);
 }
 
 void norautp_state::tpoker2_map(address_map &map)
 {
 	map(0x0000, 0x6fff).rom();
 	map(0x7000, 0x7fff).ram();
-	map(0x8000, 0x87ff).rw(FUNC(norautp_state::nvram_r), FUNC(norautp_state::nvram_w));
+	map(0x8000, 0x87ff).rw(FUNC(norautp_state::nvram_r), FUNC(norautp_state::nvram_w)).share(m_nvram);
 }
 
 /*
@@ -1485,21 +1480,21 @@ void norautp_state::tpoker2_map(address_map &map)
 void norautp_state::kimbldhl_map(address_map &map)
 {
 	map(0x0000, 0x7fff).rom();
-	map(0xc000, 0xc7ff).ram().share("nvram");
+	map(0xc000, 0xc7ff).ram().share(m_nvram);
 }
 
 void norautp_state::drhl_map(address_map &map)
 {
 	map.global_mask(0x7fff);  // A15 not connected
 	map(0x0000, 0x3fff).rom();
-	map(0x5000, 0x53ff).ram().share("nvram");
+	map(0x5000, 0x53ff).ram().share(m_nvram);
 	map(0x5400, 0x57ff).ram();
 }
 
 void norautp_state::krampcb4_map(address_map &map)
 {
 	map(0x0000, 0x3fff).rom();
-	map(0xa000, 0xa7ff).ram().share("nvram");
+	map(0xa000, 0xa7ff).ram().share(m_nvram);
 //  map(0xff00, 0xffff).ram();
 }
 
@@ -2775,51 +2770,20 @@ void norautp_state::kimbldhl(machine_config &config)
 
 void norautp_state::tpoker2(machine_config &config)
 {
+	noraut_base(config);
+
 	// basic machine hardware
-	I8080(config, m_maincpu, DPHL_CPU_CLOCK);
+	I8080(config.replace(), m_maincpu, DPHL_CPU_CLOCK);
 	m_maincpu->set_addrmap(AS_PROGRAM, &norautp_state::tpoker2_map);
 	m_maincpu->set_addrmap(AS_IO, &norautp_state::norautp_portmap);
 	m_maincpu->set_vblank_int("screen", FUNC(norautp_state::irq0_line_hold));
 
-	NVRAM(config, "nvramx", nvram_device::DEFAULT_ALL_0);
-
-	I8255(config, m_ppi8255[0], 0);
-	// (60-63) Mode 0 - Port A set as input
-	m_ppi8255[0]->in_pa_callback().set_ioport("DSW1");
-	m_ppi8255[0]->out_pb_callback().set(FUNC(norautp_state::mainlamps_w));
-	m_ppi8255[0]->out_pc_callback().set(FUNC(norautp_state::counterlamps_w));
-
-	I8255(config, m_ppi8255[1], 0);
-	// (a0-a3) Mode 0 - Ports A & B set as input
-	m_ppi8255[1]->in_pa_callback().set_ioport("IN0");
-	m_ppi8255[1]->in_pb_callback().set_ioport("IN1");
-	m_ppi8255[1]->out_pc_callback().set(FUNC(norautp_state::soundlamps_w));
-
-	I8255(config, m_ppi8255[2], 0);
-	m_ppi8255[2]->out_pb_callback().set(FUNC(norautp_state::ppi2_b_w));
-	m_ppi8255[2]->in_pc_callback().set_ioport("IN2");
-	m_ppi8255[2]->out_pc_callback().set(FUNC(norautp_state::ppi2_obf_w)).bit(7);
-
-	// video hardware
-	SCREEN(config, m_screen, SCREEN_TYPE_RASTER);
-	m_screen->set_refresh_hz(60);
-	m_screen->set_vblank_time(ATTOSECONDS_IN_USEC(0));
-	m_screen->set_size(32*16, 32*16);
-	m_screen->set_visarea(2*16, 31*16-1, (0*16) + 8, 16*16-1);
 	m_screen->set_screen_update(FUNC(norautp_state::screen_update_dphl));
-	m_screen->set_palette(m_palette);
 
-	GFXDECODE(config, m_gfxdecode, m_palette, gfx_norautp);
-	PALETTE(config, "palette", FUNC(norautp_state::bp_based_palette), 512);
-
-	HOPPER(config, m_hopper, attotime::from_msec(150));
+	PALETTE(config.replace(), m_palette, FUNC(norautp_state::bp_based_palette), 512);
 
 	// sound hardware
-	SPEAKER(config, "mono").front_center();
-	DISCRETE(config, m_discrete, norautp_discrete);
 	m_discrete->set_intf(dphl_discrete);
-	m_discrete->add_route(ALL_OUTPUTS, "mono", 1.0);
-
 }
 
 void norautp_state::drhl(machine_config &config)
@@ -5785,7 +5749,7 @@ ROM_START(tpoker2 )
 	ROM_REGION( 0x1000,  "gfx", 0 )
 	ROM_LOAD( "turbo_poker_char_rom.u30", 0x0000, 0x1000, CRC(6df86e08) SHA1(a451f71db7b59500b99207234ef95793afc11f03) )
 
-	ROM_REGION( 0x0800,  "nvramx", 0 )  // nvram
+	ROM_REGION( 0x0800,  "nvram", 0 )  // nvram
 	ROM_LOAD( "mk48z02.u44", 0x0000, 0x0800, CRC(fcb12763) SHA1(66a672c15db7f514d190f84fba023b2733d1f194) )
 
 	ROM_REGION( 0x0200,  "proms", 0 )
@@ -5955,7 +5919,7 @@ ROM_START( tpoker2b )
 	ROM_REGION( 0x1000,  "gfx", 0 )
 	ROM_LOAD( "1993_micro_mfg_turbo_poker_char_rom.u30", 0x0000, 0x1000, CRC(6df86e08) SHA1(a451f71db7b59500b99207234ef95793afc11f03) )
 
-	ROM_REGION( 0x0800,  "nvramx", 0 )  // DS1220AD-150 ; Dallas 2K x 8 CMOS nonvolatile SRAM
+	ROM_REGION( 0x0800,  "nvram", 0 )  // DS1220AD-150 ; Dallas 2K x 8 CMOS nonvolatile SRAM
 	ROM_LOAD( "tpoker2a_nvram.bin", 0x0000, 0x0800, CRC(615f3888) SHA1(b7d5aeb1c52748061f8913571bc5ac3e839c3595) )
 
 	ROM_REGION( 0x0200,  "proms", 0 )
