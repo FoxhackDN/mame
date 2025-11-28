@@ -81,7 +81,10 @@
     in the texture header tells the rasterizer which texture map to use. The rasterizer then can average two texture
     maps to do mip mapping. More information can be found on the 2B manual, on the 'Texturing' and 'Data Format' chapters.
     - The rasterizer supports 128x128 'microtextures' which are typically used to add more details to a texture when it is
-	close enough to the viewer.
+    close enough to the viewer.
+    - Polygons are rendered from front-to-back. A fill buffer is used to track which pixels in the framebuffer have already
+    been drawn to and prevents them from being overwritten. The real hardware does this to ensure that the polygons closest
+    to the camera are rendered first, in case the renderer runs out of time and has to skip ahead to the next frame.
 
 *********************************************************************************************************************************/
 
@@ -171,28 +174,26 @@ inline u16 model2_state::float_to_zval( float floatval )
 
 	/* round the low bits and reduce to 12 */
 	mantissa += 0x400;
-	if (mantissa > 0x7fffff) { exponent++; mantissa = (mantissa & 0x7fffff) >> 1; }
+	if (mantissa > 0x7fffff)
+	{
+		exponent++;
+		mantissa = (mantissa & 0x7fffff) >> 1;
+	}
 	mantissa >>= 11;
 
-	/* if negative, clamp to 0 */
+	// if negative, clamp to 0
 	if (fpint < 0)
 		return 0x0000;
 
-	/* the rest depends on the exponent */
-	/* less than -12 is too small, return 0 */
-	if ( exponent < -12 )
-		return 0x0000;
-
-	/* between -12 and 0 create a denormal with exponent of 0 */
-	if ( exponent < 0 )
-		return (mantissa | 0x1000) >> -exponent;
-
-	/* between 0 and 14 create a FP value with exponent + 1 */
-	if ( exponent < 15 )
-		return (( exponent + 1 ) << 12) | mantissa;
-
-	/* above 14 is too large */
-	return 0xffff;
+	// the rest depends on the exponent
+	if (exponent < -12)
+		return 0x0000; // less than -12 is too small, return 0
+	else if (exponent < 0)
+		return (mantissa | 0x1000) >> -exponent; // between -12 and 0 create a denormal with exponent of 0
+	else if (exponent < 15)
+		return ((exponent + 1) << 12) | mantissa; // between 0 and 14 create a FP value with exponent + 1
+	else
+		return 0xffff; // above 14 is too large
 }
 
 static int32_t clip_polygon(poly_vertex *v, int32_t num_vertices, poly_vertex *vout, model2_state::plane clip_plane)
@@ -461,12 +462,6 @@ void model2_state::model2_3d_process_quad( raster_state *raster, u32 attr )
 			/* get our list read to add the triangles */
 			ztri = raster->tri_sorted_list[object.z];
 
-			if ( ztri != nullptr )
-			{
-				while( ztri->next != nullptr )
-					ztri = (triangle *)ztri->next;
-			}
-
 			/* go through the clipped vertex list, adding triangles */
 			for( i = 2; i < clipped_verts; i++ )
 			{
@@ -506,17 +501,8 @@ void model2_state::model2_3d_process_quad( raster_state *raster, u32 attr )
 				memcpy( &tri->v[2], &verts_out[i], sizeof( poly_vertex ) );
 
 				/* add to our sorted list */
-				tri->next = nullptr;
-
-				if ( ztri == nullptr )
-				{
-					raster->tri_sorted_list[object.z] = tri;
-				}
-				else
-				{
-					ztri->next = tri;
-				}
-
+				raster->tri_sorted_list[object.z] = tri;
+				tri->next = ztri;
 				ztri = tri;
 			}
 
@@ -693,12 +679,6 @@ void model2_state::model2_3d_process_triangle( raster_state *raster, u32 attr )
 			/* get our list read to add the triangles */
 			ztri = raster->tri_sorted_list[object.z];
 
-			if ( ztri != nullptr )
-			{
-				while( ztri->next != nullptr )
-					ztri = (triangle *)ztri->next;
-			}
-
 			/* go through the clipped vertex list, adding triangles */
 			for( i = 2; i < clipped_verts; i++ )
 			{
@@ -738,17 +718,8 @@ void model2_state::model2_3d_process_triangle( raster_state *raster, u32 attr )
 				memcpy( &tri->v[2], &verts_out[i], sizeof( poly_vertex ) );
 
 				/* add to our sorted list */
-				tri->next = nullptr;
-
-				if ( ztri == nullptr )
-				{
-					raster->tri_sorted_list[object.z] = tri;
-				}
-				else
-				{
-					ztri->next = tri;
-				}
-
+				raster->tri_sorted_list[object.z] = tri;
+				tri->next = ztri;
 				ztri = tri;
 			}
 
@@ -927,11 +898,12 @@ void model2_state::model2_3d_frame_end( bitmap_rgb32 &bitmap, const rectangle &c
 		return;
 
 	m_poly->destmap().fill(0x00000000, cliprect);
+	m_poly->fillmap().fill(0x00, cliprect);
 
-	for (u8 window = 0; window <= raster->cur_window; window++)
+	for (int window = raster->cur_window; window >= 0; window--)
 	{
 		/* go through the Z levels, and render each bucket */
-		for ( z = raster->max_z; z >= raster->min_z; z-- )
+		for (z = raster->min_z; z <= raster->max_z; z++)
 		{
 			/* see if we have items at this z level */
 			if ( raster->tri_sorted_list[z] != nullptr )
@@ -964,21 +936,21 @@ void model2_state::model2_3d_frame_end( bitmap_rgb32 &bitmap, const rectangle &c
 void model2_state::draw_framebuffer( bitmap_rgb32 &bitmap, const rectangle &cliprect )
 {
 	u16 *fbvram = &(m_screen->frame_number() & 1 ? m_fbvramB[0] : m_fbvramA[0]);
-	// TODO: halved crtc values?
-	int xoffs = (-m_crtc_xoffset)/2;
-	int yoffs = m_crtc_yoffset/2;
+	int xoffs = -m_crtc_xoffset;
+	int yoffs = (512 - 384) - m_crtc_yoffset;
 
 	for (int y = cliprect.min_y; y < cliprect.max_y; ++y)
 	{
 		for (int x = cliprect.min_x; x < cliprect.max_x; x++)
 		{
 			int offset = (x + xoffs) + (y + yoffs)*512;
-			int b = (fbvram[offset] >> 0) & 0x1f;
-			int r = (fbvram[offset] >> 5) & 0x1f;
-			int g = (fbvram[offset] >> 10) & 0x1f;
-			r = pal5bit(r);
-			g = pal5bit(g);
-			b = pal5bit(b);
+			// assuming the scroll color table is used
+			int r = m_colorxlat[0x0080 / 2 + ((fbvram[offset] >> 5) & 0x1f) * 0x100];
+			int g = m_colorxlat[0x4080 / 2 + ((fbvram[offset] >> 10) & 0x1f) * 0x100];
+			int b = m_colorxlat[0x8080 / 2 + ((fbvram[offset] >> 0) & 0x1f) * 0x100];
+			r = m_gamma_table[r];
+			g = m_gamma_table[g];
+			b = m_gamma_table[b];
 			bitmap.pix(y, x) = r << 16 | g << 8 | b;
 		}
 	}
@@ -2142,7 +2114,7 @@ u32 *model2_state::geo_texture_parameters( geo_state *geo, u32 opcode, u32 *inpu
 	(void)opcode;
 
 	/* read in the index */
-	index = *input++;
+	index = (*input++) >> 2;
 
 	/* read in the conut */
 	count = *input++;
@@ -2621,12 +2593,32 @@ void model2_state::video_start()
 
 u32 model2_state::screen_update_model2(screen_device &screen, bitmap_rgb32 &bitmap, const rectangle &cliprect)
 {
+	// if the scroll color table was written to, we need to refresh the palette
+	if (m_palette_dirty)
+	{
+		for (int i = 0; i < 0x1000; i++)
+		{
+			u16 palcolor = m_palram[i];
+			u8 r = m_colorxlat[0x0080 / 2 + ((palcolor >> 0) & 0x1f) * 0x100];
+			u8 g = m_colorxlat[0x4080 / 2 + ((palcolor >> 5) & 0x1f) * 0x100];
+			u8 b = m_colorxlat[0x8080 / 2 + ((palcolor >> 10) & 0x1f) * 0x100];
+			r = m_gamma_table[r];
+			g = m_gamma_table[g];
+			b = m_gamma_table[b];
+			m_palette->set_pen_color(i, r, g, b);
+		}
+	}
+
 	//logerror("--- frame ---\n");
 	bitmap.fill(m_palette->pen(0), cliprect);
 	m_sys24_bitmap.fill(0, cliprect);
 
-	for(int layer = 3; layer >= 0; layer--)
-		m_tiles->draw(screen, m_sys24_bitmap, cliprect, layer<<1, 0, 0);
+	// draw tilemap B as opaque
+	for (int layer = 3; layer >= 2; layer--)
+		m_tiles->draw(screen, m_sys24_bitmap, cliprect, layer << 1, 0, TILEMAP_DRAW_OPAQUE);
+
+	for (int layer = 1; layer >= 0; layer--)
+		m_tiles->draw(screen, m_sys24_bitmap, cliprect, layer << 1, 0, 0);
 
 	copybitmap_trans(bitmap, m_sys24_bitmap, 0, 0, 0, 0, cliprect, 0);
 

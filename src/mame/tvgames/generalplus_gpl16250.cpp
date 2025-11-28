@@ -148,6 +148,7 @@ void gcm394_game_state::base(machine_config &config)
 	m_maincpu->add_route(ALL_OUTPUTS, "speaker", 0.5, 1);
 	m_maincpu->set_bootmode(1); // boot from external ROM / CS mirror
 	m_maincpu->set_cs_config_callback(FUNC(gcm394_game_state::cs_callback));
+	m_maincpu->set_cs_space(m_memory, 0);
 
 	FULL_MEMORY(config, m_memory).set_map(&gcm394_game_state::cs_map_base);
 
@@ -174,12 +175,10 @@ void gcm394_game_state::machine_start()
 void gcm394_game_state::machine_reset()
 {
 	cs_callback(0x00, 0x00, 0x00, 0x00, 0x00);
-	m_maincpu->set_cs_space(m_memory->get_program());
 
 	m_maincpu->reset(); // reset CPU so vector gets read etc.
 
 	//m_maincpu->set_paldisplaybank_high_hack(1);
-	m_maincpu->set_alt_tile_addressing_hack(0);
 }
 
 void gcm394_game_state::cs_callback(uint16_t cs0, uint16_t cs1, uint16_t cs2, uint16_t cs3, uint16_t cs4)
