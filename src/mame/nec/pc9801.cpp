@@ -31,6 +31,10 @@ TODO (pc9801/pc9801f):
   from pc9801m (2HD) and vanilla pc9801 (none);
 - it currently hooks up half size kanji ROMs, causing missing text in many games;
 
+TODO (pc9801uv2):
+- Not enough software for the specific 3.5" 2DD format;
+- Verify dipswitches (needs 2DD fixed mode for sure)
+
 TODO (pc9801rs):
 - Remove IDE hack to not make 512 to 256 sector byte translations
 \- probably need a working C-Bus IDE in place, or a SCSI option;
@@ -186,10 +190,10 @@ void pc9801vm_state::ide_cs1_w(offs_t offset, uint16_t data, uint16_t mem_mask)
 void pc9801_state::pc9801_map(address_map &map)
 {
 	map.unmap_value_high();
-	map(0x00000, 0x9ffff).rw("cbus_root", FUNC(pc98_cbus_root_device::mem_r), FUNC(pc98_cbus_root_device::mem_w));
+	map(0x00000, 0x9ffff).rw("cbus", FUNC(pc98_cbus_root_device::mem_r), FUNC(pc98_cbus_root_device::mem_w));
 	map(0xa0000, 0xa3fff).rw(FUNC(pc9801_state::tvram_r), FUNC(pc9801_state::tvram_w)); //TVRAM
 	map(0xa8000, 0xbffff).rw(FUNC(pc9801_state::gvram_r), FUNC(pc9801_state::gvram_w)); //bitmap VRAM
-	map(0xc0000, 0xdffff).rw("cbus_root", FUNC(pc98_cbus_root_device::mem_slot_r), FUNC(pc98_cbus_root_device::mem_slot_w));
+	map(0xc0000, 0xdffff).rw("cbus", FUNC(pc98_cbus_root_device::mem_slot_r), FUNC(pc98_cbus_root_device::mem_slot_w));
 //  map(0xcc000, 0xcffff).rom().region("sound_bios", 0); //sound BIOS
 //  map(0xd6000, 0xd6fff).rom().region("fdc_bios_2dd", 0); //floppy BIOS 2dd
 //  map(0xd7000, 0xd7fff).rom().region("fdc_bios_2hd", 0); //floppy BIOS 2hd
@@ -223,7 +227,7 @@ void pc9801_state::pc9801_common_io(address_map &map)
 void pc9801_state::pc9801_io(address_map &map)
 {
 	map.unmap_value_high();
-	map(0x0000, 0xffff).rw("cbus_root", FUNC(pc98_cbus_root_device::io_r), FUNC(pc98_cbus_root_device::io_w));
+	map(0x0000, 0xffff).rw("cbus", FUNC(pc98_cbus_root_device::io_r), FUNC(pc98_cbus_root_device::io_w));
 	pc9801_common_io(map);
 	map(0x0020, 0x002f).w(FUNC(pc9801_state::dmapg4_w)).umask16(0xff00);
 	map(0x0050, 0x0057).m("fdd_2d", FUNC(pc80s31k_device::host_map)).umask16(0xff00);
@@ -742,12 +746,12 @@ void pc9801_state::ipl_bank(address_map &map)
 
 void pc9801vm_state::pc9801vm_map(address_map &map)
 {
-	map(0x000000, 0x09ffff).rw("cbus_root", FUNC(pc98_cbus_root_device::mem_r), FUNC(pc98_cbus_root_device::mem_w));
+	map(0x000000, 0x09ffff).rw("cbus", FUNC(pc98_cbus_root_device::mem_r), FUNC(pc98_cbus_root_device::mem_w));
 
 	map(0x0a0000, 0x0a3fff).rw(FUNC(pc9801vm_state::tvram_r), FUNC(pc9801vm_state::tvram_w));
 	map(0x0a4000, 0x0a4fff).rw(FUNC(pc9801vm_state::pc9801rs_knjram_r), FUNC(pc9801vm_state::pc9801rs_knjram_w));
 	map(0x0a8000, 0x0bffff).rw(FUNC(pc9801vm_state::grcg_gvram_r), FUNC(pc9801vm_state::grcg_gvram_w));
-	map(0x0c0000, 0x0dffff).rw("cbus_root", FUNC(pc98_cbus_root_device::mem_slot_r), FUNC(pc98_cbus_root_device::mem_slot_w));
+	map(0x0c0000, 0x0dffff).rw("cbus", FUNC(pc98_cbus_root_device::mem_slot_r), FUNC(pc98_cbus_root_device::mem_slot_w));
 
 	map(0x0e0000, 0x0e7fff).rw(FUNC(pc9801vm_state::grcg_gvram0_r), FUNC(pc9801vm_state::grcg_gvram0_w));
 	map(0x0e8000, 0x0fffff).m(m_ipl, FUNC(address_map_bank_device::amap16));
@@ -1604,6 +1608,7 @@ static void pc9801_floppies(device_slot_interface &device)
 {
 	device.option_add("525dd", TEAC_FD_55F);
 	device.option_add("525hd", FLOPPY_525_HD);
+	device.option_add("35dd", FLOPPY_35_DD);
 	device.option_add("35hd", FLOPPY_35_HD);
 }
 
@@ -2014,16 +2019,16 @@ void pc9801_state::pc9801(machine_config &config)
 	m_maincpu->set_irq_acknowledge_callback("pic8259_master", FUNC(pic8259_device::inta_cb));
 
 	pc9801_cbus(config);
-	PC98_CBUS_SLOT(config, "cbus0", 0, "cbus_root", pc98_cbus_devices, "pc9801_26");
-	PC98_CBUS_SLOT(config, "cbus1", 0, "cbus_root", pc98_cbus_devices, nullptr);
-	PC98_CBUS_SLOT(config, "cbus2", 0, "cbus_root", pc98_cbus_devices, nullptr);
-	PC98_CBUS_SLOT(config, "cbus3", 0, "cbus_root", pc98_cbus_devices, nullptr);
-	PC98_CBUS_SLOT(config, "cbus4", 0, "cbus_root", pc98_cbus_devices, nullptr);
-	PC98_CBUS_SLOT(config, "cbus5", 0, "cbus_root", pc98_cbus_devices, nullptr);
+	PC98_CBUS_SLOT(config, "cbus:0", 0, "cbus", pc98_cbus_devices, "pc9801_26");
+	PC98_CBUS_SLOT(config, "cbus:1", 0, "cbus", pc98_cbus_devices, nullptr);
+	PC98_CBUS_SLOT(config, "cbus:2", 0, "cbus", pc98_cbus_devices, nullptr);
+	PC98_CBUS_SLOT(config, "cbus:3", 0, "cbus", pc98_cbus_devices, nullptr);
+	PC98_CBUS_SLOT(config, "cbus:4", 0, "cbus", pc98_cbus_devices, nullptr);
+	PC98_CBUS_SLOT(config, "cbus:5", 0, "cbus", pc98_cbus_devices, nullptr);
 
 	// RAM 128KB (vanilla/F1/F2) ~ 256KB (F3/M2/M3) ~ 640KB (max)
 	// TODO: really dedicates this space in N slots above
-	PC98_CBUS_SLOT(config, "cbus_ram", 0, "cbus_root", pc98_cbus_ram_devices, "640kb");
+	PC98_CBUS_SLOT(config, "cbus:ram", 0, "cbus", pc98_cbus_ram_devices, "640kb");
 //  RAM(config, m_ram).set_default_size("640K").set_extra_options("128K,256K,384K,512K");
 
 	pc9801_common(config);
@@ -2045,13 +2050,13 @@ void pc9801_state::pc9801(machine_config &config)
 void pc9801_state::pc9801f(machine_config &config)
 {
 	pc9801(config);
-	PC98_CBUS_SLOT(config.replace(), "cbus1", 0, "cbus_root", pc98_cbus_devices, "fdd_2dd");
+	PC98_CBUS_SLOT(config.replace(), "cbus:1", 0, "cbus", pc98_cbus_devices, "fdd_2dd");
 }
 
 void pc9801_state::pc9801m(machine_config &config)
 {
 	pc9801(config);
-	PC98_CBUS_SLOT(config.replace(), "cbus1", 0, "cbus_root", pc98_cbus_devices, "fdd_2hd");
+	PC98_CBUS_SLOT(config.replace(), "cbus:1", 0, "cbus", pc98_cbus_devices, "fdd_2hd");
 }
 
 void pc9801vm_state::pc9801vm(machine_config &config)
@@ -2063,10 +2068,10 @@ void pc9801vm_state::pc9801vm(machine_config &config)
 
 	pc9801_common(config);
 	pc9801_cbus(config);
-	PC98_CBUS_SLOT(config, "cbus0", 0, "cbus_root", pc98_cbus_devices, "pc9801_26");
-	PC98_CBUS_SLOT(config, "cbus1", 0, "cbus_root", pc98_cbus_devices, nullptr);
-	PC98_CBUS_SLOT(config, "cbus2", 0, "cbus_root", pc98_cbus_devices, nullptr);
-	PC98_CBUS_SLOT(config, "cbus3", 0, "cbus_root", pc98_cbus_devices, nullptr);
+	PC98_CBUS_SLOT(config, "cbus:0", 0, "cbus", pc98_cbus_devices, "pc9801_26");
+	PC98_CBUS_SLOT(config, "cbus:1", 0, "cbus", pc98_cbus_devices, nullptr);
+	PC98_CBUS_SLOT(config, "cbus:2", 0, "cbus", pc98_cbus_devices, nullptr);
+	PC98_CBUS_SLOT(config, "cbus:3", 0, "cbus", pc98_cbus_devices, nullptr);
 
 	m_ppi_sys->out_pc_callback().set(FUNC(pc9801vm_state::ppi_sys_dac_portc_w));
 	// TODO: verify if it needs invert();
@@ -2078,7 +2083,7 @@ void pc9801vm_state::pc9801vm(machine_config &config)
 	ADDRESS_MAP_BANK(config, m_ipl).set_map(&pc9801vm_state::ipl_bank).set_options(ENDIANNESS_LITTLE, 16, 18, 0x18000);
 
 	// RAM 384KB (VM0/VM2/VM4) ~ 640KB (VM21/VM11)
-	PC98_CBUS_SLOT(config, "cbus_ram", 0, "cbus_root", pc98_cbus_ram_devices, "640kb");
+	PC98_CBUS_SLOT(config, "cbus_ram", 0, "cbus", pc98_cbus_ram_devices, "640kb");
 //  RAM(config, m_ram).set_default_size("640K").set_extra_options("384K");
 
 	MCFG_MACHINE_START_OVERRIDE(pc9801vm_state, pc9801rs)
@@ -2102,13 +2107,14 @@ void pc9801vm_state::pc9801vm(machine_config &config)
 	PALETTE(config, m_palette, FUNC(pc9801vm_state::pc9801_palette), 16 + 16);
 }
 
-// UV is essentially a VM with 3.5" drives
+// UV is essentially a VM with 3.5" 2DD drives
 // Released as UV2, UV21 then UV11 (UV21 but smaller?)
 void pc9801vm_state::pc9801uv(machine_config &config)
 {
 	pc9801vm(config);
 
-	config_floppy_35hd(config);
+	FLOPPY_CONNECTOR(config.replace(), "fdc_2hd:0", pc9801_floppies, "35dd", pc9801_state::floppy_formats);
+	FLOPPY_CONNECTOR(config.replace(), "fdc_2hd:1", pc9801_floppies, "35dd", pc9801_state::floppy_formats);
 
 	// RAM 384KB (UV2) ~ 640KB (UV21/ UV11)
 //  m_ram->set_default_size("640K").set_extra_options("384K");
