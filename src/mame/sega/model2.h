@@ -73,7 +73,7 @@ public:
 		m_in0(*this, "IN0"),
 		m_gears(*this, "GEARS"),
 		m_lightgun_ports(*this, {"P1_Y", "P1_X", "P2_Y", "P2_X"}),
-		m_lamps(*this, "lamp%u", 0U)		
+		m_lamps(*this, "lamp%u", 0U)
 	{ }
 
 	/* Public for access by the rendering functions */
@@ -138,7 +138,7 @@ protected:
 	optional_ioport m_gears;
 	optional_ioport_array<4> m_lightgun_ports;
 	output_finder<6> m_lamps;
-	
+
 	u32 m_timervals[4]{};
 	u32 m_timerorig[4]{};
 	int m_timerrun[4]{};
@@ -443,6 +443,7 @@ class model2o_gtx_state : public model2o_state
 public:
 	model2o_gtx_state(const machine_config &mconfig, device_type type, const char *tag)
 		: model2o_state(mconfig, type, tag)
+		, m_prot_data(*this, "prot_data")
 	{}
 
 	void daytona_gtx(machine_config &config);
@@ -451,6 +452,7 @@ protected:
 	virtual void machine_reset() override ATTR_COLD;
 
 private:
+	required_region_ptr<u32> m_prot_data;
 	int m_gtx_state = 0;
 
 	u8 gtx_r(offs_t offset);
