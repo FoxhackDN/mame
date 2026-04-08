@@ -355,7 +355,7 @@ void upd765_family_device::device_reset()
 
 void upd765_family_device::soft_reset()
 {
-	main_phase = PHASE_CMD;
+	main_phase = PHASE_IDLE;
 	for(int i=0; i<4; i++) {
 		flopi[i].main_state = IDLE;
 		flopi[i].sub_state = IDLE;
@@ -392,6 +392,7 @@ void upd765_family_device::soft_reset()
 
 void upd765_family_device::end_reset()
 {
+	main_phase = PHASE_CMD;
 	if(ready_polled)
 		poll_timer->adjust(attotime::from_usec(100), 0, attotime::from_usec(1024));
 }
@@ -3602,4 +3603,3 @@ void hd63266f_device::index_callback(floppy_image_device *floppy, int state)
 	}
 	upd765_family_device::index_callback(floppy, state);
 }
-

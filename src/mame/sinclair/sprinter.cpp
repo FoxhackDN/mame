@@ -31,7 +31,6 @@ Following manual configuration adjustments are recommended for better experience
 - CDROM CDDA Sound is only connected to ata1:1
 - Input Settings > Keyboard Selection >
         Microsoft Natural Keyboard [root:kbd:ms_naturl]: Enabled
-- Use '-rs232 microsoft_mouse'
 - Input Settings > Input Assignments (this system) > Microsoft 2-Button Serial Mouse (HLE) [root:rs232:microsoft_mouse]
         Mouse X 3 Analog:                                Mouse X    (MOUSECODE_1_XAXIS)
         Mouse X 3 Analog Inc:                            Mouse X -  (MOUSECODE_1_XAXIS_NEG_SWITCH)
@@ -1027,7 +1026,7 @@ void sprinter_state::check_accel(bool is_read, offs_t offset, u8 &data)
 			if (BIT(m_acc_dir, 2)) // block operation
 			{
 				// fastram doesn't apply waits, hence m_wait_cycles_count is not updated
-				if (is_read && ~(m_pages[BIT(offset, 14, 2)] & BANK_FASTRAM_MASK))
+				if (is_read && (~m_pages[BIT(offset, 14, 2)] & BANK_FASTRAM_MASK))
 					m_maincpu->adjust_icount(m_wait_ticks_count);
 
 				m_maincpu->set_input_line(Z80_INPUT_LINE_WAIT, ASSERT_LINE);
@@ -1181,6 +1180,8 @@ template <u8 Bank> u8 sprinter_state::ram_r(offs_t offset)
 template <u8 Bank> void sprinter_state::ram_w(offs_t offset, u8 data)
 {
 	static_assert(Bank < 4, "unexpected bank number");
+	if (m_access_state == ACCEL_GO)
+		return;
 
 	do_mem_wait(3);
 

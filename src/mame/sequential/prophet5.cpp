@@ -60,10 +60,12 @@ the current knob positions, press the "preset" button ('P') to exit preset mode
 #include "machine/timer.h"
 #include "sound/cem3310.h"
 #include "sound/cem3320.h"
+#include "sound/cem3340.h"
 #include "sound/dac.h"
 #include "sound/flt_rc.h"
 #include "sound/mixer.h"
 #include "sound/mm5837.h"
+#include "sound/va_eg.h"
 #include "sound/va_ops.h"
 #include "sound/va_vca.h"
 #include "video/pwm.h"
@@ -82,6 +84,7 @@ the current knob positions, press the "preset" button ('P') to exit preset mode
 #define LOG_PROG_LATCH  (1U << 6)
 #define LOG_FILTER      (1U << 7)
 #define LOG_WHEEL       (1U << 8)
+#define LOG_LFO         (1U << 9)
 
 #define VERBOSE (LOG_GENERAL | LOG_CALIBRATION | LOG_PROG_LATCH | LOG_CV)
 //#define LOG_OUTPUT_FUNC osd_printf_info
@@ -94,6 +97,7 @@ constexpr double VCC = 5.0;
 constexpr double VPLUS = 15.0;
 constexpr double VMINUS = -15.0;
 constexpr double MAX_CV_IN = 10.0;  // Maximun voltage for CV inputs on back panel.
+constexpr double VD = 0.6;  // Diode voltage drop / PNP emitter-base voltage drop.
 
 double normalized(const required_ioport &input)
 {
@@ -115,7 +119,6 @@ double cv2cc(double cv, double r)
 	// These values were chosen to work for the Rs found on the Prophet 5.
 	constexpr double CV_ZERO = 0.3;
 	constexpr double CV_LINEAR = 0.8;
-	constexpr double QVBE = 0.6;
 
 	if (cv <= CV_ZERO)
 	{
@@ -125,7 +128,7 @@ double cv2cc(double cv, double r)
 	else if (cv >= CV_LINEAR)
 	{
 		// Large control voltage. Current is essentially linear wrt voltage.
-		return (cv - QVBE) / r;
+		return (cv - VD) / r;
 	}
 	else
 	{
@@ -139,7 +142,7 @@ double cv2cc(double cv, double r)
 
 		constexpr double P0[2] = { 0.3, 0.0 };
 		constexpr double P1[2] = { 0.6, 0.0 };
-		const double P2[2] = { 0.8, (0.8 - QVBE) / r };
+		const double P2[2] = { 0.8, (0.8 - VD) / r };
 
 		const double t = (cv - P0[0]) / (P2[0] - P0[0]);
 		const double t1 = 1.0 - t;
@@ -241,7 +244,7 @@ private:
 
 	device_sound_interface *const m_filt_sum_cv;
 	device_sound_interface *const m_noise;
-	sound_stream *m_stream = nullptr;
+	sound_stream *m_stream;
 
 	required_device<cem3310_device> m_vca_eg;  // U412
 	required_device<ca3280_vca_lin_device> m_vca;  // U477A
@@ -298,6 +301,7 @@ prophet5_voice_device::prophet5_voice_device(
 	, m_filt_offset_name(util::string_format("%s TRIMMER: FILT OFFSET", strmakeupper(basetag())))
 	, m_filt_sum_cv(filt_sum_cv)
 	, m_noise(noise)
+	, m_stream(nullptr)
 	, m_vca_eg(*this, "vca_eg")
 	, m_vca(*this, "vca")
 	, m_filt_eg(*this, "filt_eg")
@@ -471,8 +475,12 @@ public:
 	void select_a440_w(int state);
 	void a440_w(int state);
 
-	void filt_kbd_s_w(int state);
-	void wmod_filt_s_w(int state);
+	// Signal routing switch IC (CD4016) control.
+	void lfo_ramp_s_w(int state);  // U377A pin 13
+	void lfo_sqr_s_w(int state);   // U377B pin 5
+	void lfo_tri_s_w(int state);   // U377C pin 6
+	void filt_kbd_s_w(int state);  // U369D pin 12
+	void wmod_filt_s_w(int state); // U369C pin 6
 
 	void cv_w(offs_t cv_index, double cv);
 
@@ -488,14 +496,23 @@ protected:
 private:
 	static double eg_rate_cv(double cv);
 	static double eg_sustain_cv(double cv);
+	static double glide_rate_cc(double cv);
+	static double lfo_vca_cc(double cv);
 
+	void update_lfo_mix();
 	void update_wmod_amount();
 	void update_wmod_routing();
+	void update_glide_out_routing();
 	void update_filter_fixed_cvs();
 	void update_voice_volume();
 	void update_master_volume();
 
+	required_device<va_ota_eg_device> m_glide_eg;  // U381A (CA3280) + surrounding components.
 	required_device<ca3280_vca_device> m_mod_noise_vca;  // U378B
+	required_device<cem3340_device> m_lfo;  // U376
+	required_device<va_scale_offset_device> m_lfo_tri_center;  // U380B (TL082) and surrounding resistors.
+	required_device<mixer_device> m_lfo_mixer;
+	required_device<ca3280_vca_device> m_lfo_vca;  // U378A
 	required_device<mixer_device> m_wmod;  // R2, U374D (LM348) - W-MOD BUFFER
 	required_device<va_const_device> m_filt_fixed_cvs;
 	required_device<mixer_device> m_filt_cv_mixer;
@@ -513,6 +530,9 @@ private:
 	required_ioport m_filter_cv_in;  // J6
 	required_ioport m_mod_wheel;  // R2
 
+	bool m_lfo_ramp_s;  // U377A pin 13
+	bool m_lfo_sqr_s;  // U377B pin 5
+	bool m_lfo_tri_s;  // U377C pin 6
 	bool m_filt_kbd_s;  // U369D (CD4016) control (pin 12)
 	bool m_wmod_filt_s;  // U369C (CD4016) control (pin 6)
 	std::array<double, 40> m_cv;
@@ -548,7 +568,12 @@ DEFINE_DEVICE_TYPE(PROPHET5_AUDIO, prophet5_audio_device, "prophet5_audio", "Pro
 
 prophet5_audio_device::prophet5_audio_device(const machine_config &mconfig, const char *tag, device_t *owner, u32 clock)
 	: device_t(mconfig, PROPHET5_AUDIO, tag, owner, clock)
+	, m_glide_eg(*this, "glide_eg")
 	, m_mod_noise_vca(*this, "mod_noise_vca")
+	, m_lfo(*this, "lfo")
+	, m_lfo_tri_center(*this, "lfo_tri_center")
+	, m_lfo_mixer(*this, "lfo_mixer")
+	, m_lfo_vca(*this, "lfo_vca")
 	, m_wmod(*this, "wmod")
 	, m_filt_fixed_cvs(*this, "filt_fixed_cvs")
 	, m_filt_cv_mixer(*this, "filt_cv_mixer")
@@ -563,6 +588,9 @@ prophet5_audio_device::prophet5_audio_device(const machine_config &mconfig, cons
 	, m_amp_cv_in(*this, ":cv_in_amp")
 	, m_filter_cv_in(*this, ":cv_in_filter")
 	, m_mod_wheel(*this, ":wheel_mod")
+	, m_lfo_ramp_s(false)
+	, m_lfo_sqr_s(false)
+	, m_lfo_tri_s(false)
 	, m_filt_kbd_s(false)
 	, m_wmod_filt_s(false)
 {
@@ -573,6 +601,16 @@ void prophet5_audio_device::device_add_mconfig(machine_config &config)
 {
 	// *** Modulation ***
 
+	// Unison / Glide CV generator.
+	// An OTA-based envelope generator produces the "GLIDE OUT CV". It slews
+	// towards UNISON CV with a rate controlled by GLIDE CV. The EG ramp starts
+	// as linear, and transitions to an "RC" curve when very close to the target
+	// voltage. The EG consists of U381A (CA3280), U380A (TL082) and surrounding
+	// passives. The GLIDE OUT CV is distributed to the "sum CVs" of the filter
+	// and two oscillators (see update_glide_out_routing()).
+	VA_OTA_EG(config, m_glide_eg, va_ota_eg_device::ota_type::CA3280, CAP_U(0.1)) // C376
+		.add_route(0, m_filt_cv_mixer, 1.0);
+
 	// Pink noise modulation source.
 	// The output of the noise IC is offset, scaled, inverted and low-pass-
 	// filtered by U374B (LM348 op-amp) and surrounding passives. The
@@ -580,7 +618,6 @@ void prophet5_audio_device::device_add_mconfig(machine_config &config)
 	// That signal is then fed to a VCA, which controls the amount of modulation
 	// by the noise source.
 	// TODO: Implement the "noise bal" trimmer.
-	// TODO: Intensity seems to max out early in the mod wheel's range. Figure out why.
 
 	// Offset, scale, inversion, clipping and centering (in lieu of the trimmer)
 	// are all handled by "mod_noise_buffer". Relevant calculations:
@@ -605,7 +642,24 @@ void prophet5_audio_device::device_add_mconfig(machine_config &config)
 		.configure_input_divider(RES_K(20), RES_R(330))  // R3119, R3120
 		.add_route(0, m_wmod, 1.0);
 
-	// TODO: Implement LFO modulation source.
+	// LFO modulation source.
+	// The LFO is built around a CEM3340 configured with a pulse width of 50%.
+	// Its 3 waveform outputs can be enabled individually via CD4016 switches (
+	// see lfo_*_s_w()). The triangle's output is further processed to center it
+	// around 0V, which is more appropriate for vibrato effects. The 3 waveforms
+	// are mixed passively and fed to a VCA, which controls the amount of
+	// modulation by the LFO. Many of the route gains, and the triangle scale
+	// and offset are computed in update_lfo_mix().
+	CEM3340(config, m_lfo, CAP_U(0.1), RES_M(2.21))  // U376 - C382 (mylar, 5%), R3138 (1%)
+		.set_pw_cv(VPLUS * RES_VOLTAGE_DIVIDER(RES_K(10), RES_K(2)))  // R3110, R3111, 50% PW.
+		.add_route(cem3340_device::OUTPUT_TRIANGLE, m_lfo_tri_center, 1.0)
+		.add_route(cem3340_device::OUTPUT_RAMP, m_lfo_mixer, 1.0)
+		.add_route(cem3340_device::OUTPUT_PULSE, m_lfo_mixer, 1.0);
+	VA_SCALE_OFFSET(config, m_lfo_tri_center)  // U380B (TL082) and surrounding resistors.
+		.set_scale(0).set_offset(0)
+		.add_route(0, m_lfo_mixer, 1.0);
+	MIXER(config, m_lfo_mixer).add_route(0, m_lfo_vca, 1.0);
+	CA3280_VCA(config, m_lfo_vca).add_route(0, m_wmod, 1.0);  // U378A
 
 	// The output currents from the noise and LFO VCAs are summed and converted
 	// to a voltage by the mod wheel and R3113 (see update_wmod_amount()). The
@@ -704,6 +758,9 @@ void prophet5_audio_device::device_add_mconfig(machine_config &config)
 
 void prophet5_audio_device::device_start()
 {
+	save_item(NAME(m_lfo_ramp_s));
+	save_item(NAME(m_lfo_sqr_s));
+	save_item(NAME(m_lfo_tri_s));
 	save_item(NAME(m_filt_kbd_s));
 	save_item(NAME(m_wmod_filt_s));
 	save_item(NAME(m_cv));
@@ -714,8 +771,10 @@ void prophet5_audio_device::device_reset()
 	for (int i = 0; i < m_cv.size(); ++i)
 		cv_w(i, 0);
 
+	update_lfo_mix();
 	update_wmod_amount();
 	update_wmod_routing();
+	update_glide_out_routing();
 	update_filter_fixed_cvs();
 	update_voice_volume();
 	update_master_volume();
@@ -735,11 +794,32 @@ void prophet5_audio_device::a440_w(int state)
 	m_a440->write(state);
 }
 
+void prophet5_audio_device::lfo_ramp_s_w(int state)
+{
+	m_lfo_ramp_s = bool(state);
+	LOGMASKED(LOG_PROG_LATCH, "lfo_ramp_s = %d\n", state);
+	update_lfo_mix();
+}
+
+void prophet5_audio_device::lfo_sqr_s_w(int state)
+{
+	m_lfo_sqr_s = bool(state);
+	LOGMASKED(LOG_PROG_LATCH, "lfo_sqr_s = %d\n", state);
+	update_lfo_mix();
+}
+
+void prophet5_audio_device::lfo_tri_s_w(int state)
+{
+	m_lfo_tri_s = bool(state);
+	LOGMASKED(LOG_PROG_LATCH, "lfo_tri_s = %d\n", state);
+	update_lfo_mix();
+}
+
 void prophet5_audio_device::filt_kbd_s_w(int state)
 {
 	m_filt_kbd_s = bool(state);
 	LOGMASKED(LOG_PROG_LATCH, "filt_kbd_s = %d\n", m_filt_kbd_s);
-	update_filter_fixed_cvs();
+	update_glide_out_routing();
 }
 
 void prophet5_audio_device::wmod_filt_s_w(int state)
@@ -773,7 +853,17 @@ void prophet5_audio_device::cv_w(offs_t cv_index, double cv)
 
 	switch (cv_index)
 	{
+		case CV_LFO_FREQ:
+			m_lfo->set_freq_cc(VPLUS / RES_K(487) + cv / RES_K(110));  // R3135 (1%), R3136 (1%)
+			LOGMASKED(LOG_LFO, "LFO frequency: %f\n", m_lfo->get_freq());
+			break;
+
 		case CV_WMOD_SRC_MIX:
+			// A single CV is used to cross-fade between the LFO and noise
+			// modulation sources. The same CV is processed by two different
+			// voltage-to-current converters. As the CV increases, the CC for
+			// the noise VCA increases, while the CC for the LFO VCA decreases.
+			m_lfo_vca->set_fixed_gain_cv(lfo_vca_cc(cv));
 			m_mod_noise_vca->set_fixed_gain_cv(cv2cc(cv, RES_K(8.2)));  // Q307, R3116
 			break;
 
@@ -781,10 +871,8 @@ void prophet5_audio_device::cv_w(offs_t cv_index, double cv)
 			m_noise_vca->set_fixed_gain_cv(cv2cc(cv, RES_K(75)));  // Q305, R327
 			break;
 
-		case CV_UNISON:
-			if (m_filt_kbd_s)
-				update_filter_fixed_cvs();
-			break;
+		case CV_GLIDE:  m_glide_eg->set_iabc(glide_rate_cc(cv)); break;
+		case CV_UNISON: m_glide_eg->set_target_v(cv); break;
 
 		case CV_FILT_CUTOFF: update_filter_fixed_cvs(); break;
 		case CV_FILT_1_SH: m_voices[0]->filt_sh_w(cv); break;
@@ -890,6 +978,145 @@ double prophet5_audio_device::eg_sustain_cv(double cv)
 	return cv * RES_VOLTAGE_DIVIDER(RES_K(4.75), RES_K(4.75));  // both 1%
 }
 
+double prophet5_audio_device::glide_rate_cc(double cv)
+{
+	// The glide control current (CC) generator is a voltage-to-exponential-current
+	// converter built around a matched PNP transistor pair (Q309).
+	//
+	// This setup is a typical PNP-based BJT differential pair, with one side
+	// tied to GND.
+	//
+	//                             +15V----R(30K) R3126
+	//                                       |
+	//                                       +--------+
+	//                                       |        |
+	//             R3124                     v        v
+	// GLIDE CV---R(100K)---+---------------PNP      PNP--+--GND
+	//                      |                |        |   |
+	//                   R(2.7K)          R(100K)     +---+
+	//               R3125  |         R3123  |
+	//                     GND               +-------------CA3280 Iabc
+
+	assert(cv >= 0.0);
+
+	constexpr double VCE_MIN = 0.1;  // Minimum collector-emitter voltage drop.
+	constexpr double VT = 25.7E-3F;  // Thermal voltage constant at 25 deg C.
+
+	constexpr double I_EE = (VPLUS - VD) / RES_K(30);  // Approximate total current to both PNP emitters.
+	const double v_b = cv * RES_VOLTAGE_DIVIDER(RES_K(100), RES_K(2.7));
+	const double i_c = I_EE / (1 + exp(v_b / VT));  // Theoretical collector current.
+
+	// The collector resistor limits the collector current.
+	constexpr double VC_MAX = /*GND*/0 + VD - VCE_MIN;  // Max possible collector voltage.
+	constexpr double VIABC = VMINUS + 2 * VD;  // CA3280 Iabc input is ~2 diode drops above the negative supply.
+	constexpr double IC_MAX = (VC_MAX - VIABC) / RES_K(100);  // Max possible collector current.
+
+	return std::min(i_c, IC_MAX);
+}
+
+double prophet5_audio_device::lfo_vca_cc(double cv)
+{
+	// 15V
+	//  |         CV---+
+	// R(10K)          |
+	//  |              |
+	//  +----------|->PNP--|-----R(3.3K)----- CA3280 Iabc (LFO VCA control current)
+	//  |
+	// R(20K)
+	//  |
+	// GND
+	constexpr double R3128 = RES_K(10);
+	constexpr double R3130 = RES_K(20);
+
+	// Find approximate voltage at the emitter of the PNP (Q308, 2N4250).
+	constexpr double MAX_VE = VPLUS * RES_VOLTAGE_DIVIDER(R3128, R3130);
+	const double ve = std::min(cv + VD, MAX_VE);
+
+	// Iabc = collector current ~= emitter current = current through R(10K) - current through R(20K).
+	return (VPLUS - ve) / R3128 - ve / R3130;
+}
+
+void prophet5_audio_device::update_lfo_mix()
+{
+	// CEM3340       CD4016
+	// _______
+	//        |      ___
+	//   RAMP |-----|   |------------------------------R3133---+
+	//        |     |___|                                      |
+	//        |       |                                        |
+	//        |  m_lfo_ramp_s                                  |
+	//        |      ___                                       |
+	//  PULSE |-----|   |------------------------------R3132---+
+	//        |     |___|                                      |
+	//        |       |                                        |
+	//        |  m_lfo_sqr_s                                   |
+	//        |      ___       __________________              |
+	//    TRI |-----|   |-----|  SCALE & CENTER  |-----R3131---+----- LFO VCA
+	//        |     |___|     |__________________|             |
+	//        |       |                                      R3140
+	//        |  m_lfo_tri_s                                   |
+	//________|                                               GND
+
+	constexpr double R3131 = RES_K(160);
+	constexpr double R3132 = RES_K(200);
+	constexpr double R3133 = RES_K(160);
+	constexpr double R3140 = RES_R(330);
+
+	// Individual switches control whether each waveform makes it to the mix.
+	// Mixing is passive. The Scale & Center circuit always outputs a voltage,
+	// regardless of the triangle switch state, so R3131 will always load the
+	// mixed signal. In contrast, R3132 and R3133 will only load the signal if
+	// the corresponding switch is enabled.
+
+	double ramp_gain = 0;
+	if (m_lfo_ramp_s)
+	{
+		double r_gnd = RES_2_PARALLEL(R3140, R3131);
+		if (m_lfo_sqr_s)
+			r_gnd = RES_2_PARALLEL(r_gnd, R3132);
+		ramp_gain = RES_VOLTAGE_DIVIDER(R3133, r_gnd);
+	}
+	m_lfo->set_route_gain(cem3340_device::OUTPUT_RAMP, m_lfo_mixer, 0, ramp_gain);
+
+	double sqr_gain = 0;
+	if (m_lfo_sqr_s)
+	{
+		double r_gnd = RES_2_PARALLEL(R3140, R3131);
+		if (m_lfo_ramp_s)
+			r_gnd = RES_2_PARALLEL(r_gnd, R3133);
+		sqr_gain = RES_VOLTAGE_DIVIDER(R3132, r_gnd);
+	}
+	m_lfo->set_route_gain(cem3340_device::OUTPUT_PULSE, m_lfo_mixer, 0, sqr_gain);
+
+	double tri_r_gnd = R3140;
+	if (m_lfo_ramp_s)
+		tri_r_gnd = RES_2_PARALLEL(tri_r_gnd, R3133);
+	if (m_lfo_sqr_s)
+		tri_r_gnd = RES_2_PARALLEL(tri_r_gnd, R3132);
+	const double tri_gain = RES_VOLTAGE_DIVIDER(R3131, tri_r_gnd);
+	m_lfo_tri_center->set_route_gain(0, m_lfo_mixer, 0, tri_gain);
+
+	// The output of the triangle switch is processed by U380B (TL082) and the
+	// surrounding resistor network. When the switch is off, the output of that
+	// circuit will be 0V. When the switch is on, the circuit will scale and
+	// offset the [0V, 5V] triangle signal to approximately [-5V, 5V].
+	double tri_scale = 0;
+	double tri_offset = 0;
+	if (m_lfo_tri_s)
+	{
+		// Values are based on a simulation.
+		constexpr double MIN_OUT = -4.885;
+		constexpr double MAX_OUT = 4.936;
+		tri_scale = (MAX_OUT - MIN_OUT) / 5.0;
+		tri_offset = MIN_OUT;
+	}
+	m_lfo_tri_center->set_scale(tri_scale);
+	m_lfo_tri_center->set_offset(tri_offset);
+
+	LOGMASKED(LOG_LFO, "LFO waveform gains - ramp: %f, sqr: %f, tri: %f. Tri scale: %f, offset:%f\n",
+			  ramp_gain, sqr_gain, tri_gain, tri_scale, tri_offset);
+}
+
 void prophet5_audio_device::update_wmod_amount()
 {
 	// The two VCAs are current sources.
@@ -903,9 +1130,13 @@ void prophet5_audio_device::update_wmod_amount()
 	constexpr double R2 = RES_K(100);  // mod wheel
 	constexpr double R3113 = RES_K(10);
 
+	// The real hardware does not use the full range of the wheel potentiometers.
+	// The exact range is not known. Going by ear.
+	constexpr double WHEEL_RANGE = 0.1;
+
 	// Compute the gain that converts the sum of the VCA currents to the voltage
 	// at the buffer.
-	const double r2_bottom = normalized(m_mod_wheel) * R2;
+	const double r2_bottom = normalized(m_mod_wheel) * WHEEL_RANGE * R2;
 	const double r2_top = R2 - r2_bottom;
 	const double i2v = RES_2_PARALLEL(R3113, R2) * RES_VOLTAGE_DIVIDER(r2_top, r2_bottom);
 
@@ -920,16 +1151,19 @@ void prophet5_audio_device::update_wmod_routing()
 	LOGMASKED(LOG_WHEEL, "Mod wheel routing - filter: %f\n", filt_gain);
 }
 
+void prophet5_audio_device::update_glide_out_routing()
+{
+	const double filt_route_gain = m_filt_kbd_s ? (1.0 / RES_K(100)) : 0.0;  // R372 (1%)
+	m_glide_eg->set_route_gain(0, m_filt_cv_mixer, 0, filt_route_gain);
+}
+
 void prophet5_audio_device::update_filter_fixed_cvs()
 {
 	// Multiple cutoff frequency sources are summed and inverted by U367A (
 	// LM348, configured as an inverting mixer) and surrounding resistors.
-	// TODO: Glide amount is not yet emulated. The "glide out" CV tracks the
-	// "unison" CV for now, regardless of glide amount.
 	const double i_cv_in = MAX_CV_IN * normalized(m_filter_cv_in) / RES_K(100);  // R374 (1%)
 	const double i_ctf_cv = m_cv[CV_FILT_CUTOFF] / RES_K(100);  // R352 (1%)
-	const double i_glide_out_cv = m_filt_kbd_s ? (m_cv[CV_UNISON] / RES_K(100)) : 0.0;  // R372 (1%)
-	m_filt_fixed_cvs->set_value(i_cv_in + i_ctf_cv + i_glide_out_cv);
+	m_filt_fixed_cvs->set_value(i_cv_in + i_ctf_cv);
 }
 
 void prophet5_audio_device::update_voice_volume()
@@ -1638,9 +1872,9 @@ void prophet5_state::prophet5rev30(machine_config &config)
 	u334.bit_handler<0>().set_output("pmod_freq_a");
 	u334.bit_handler<1>().set_output("pmod_pw_a");
 	u334.bit_handler<2>().set_output("pmod_filt");
-	u334.bit_handler<3>().set_output("lfo_saw");
-	u334.bit_handler<4>().set_output("lfo_tri");
-	u334.bit_handler<5>().set_output("lfo_sqr");
+	u334.bit_handler<3>().set(m_audio, FUNC(prophet5_audio_device::lfo_ramp_s_w));
+	u334.bit_handler<4>().set(m_audio, FUNC(prophet5_audio_device::lfo_tri_s_w));
+	u334.bit_handler<5>().set(m_audio, FUNC(prophet5_audio_device::lfo_sqr_s_w));
 	u334.bit_handler<6>().set(m_audio, FUNC(prophet5_audio_device::filt_kbd_s_w));  // Actually U341B (4013 flipflop).
 
 	auto &u333 = OUTPUT_LATCH(config, "program_latch_2");
