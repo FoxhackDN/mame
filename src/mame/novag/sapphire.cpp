@@ -37,7 +37,7 @@ Hardware notes:
 
 ================================================================================
 
-Novag Chess Teacher (model 9306)
+Novag Chess Teacher (model 9306) (aka Professeur d'Echecs Novag)
 --------------------------------
 
 Unlike references online claiming it's a Sapphire in disguise, Chess Teacher is
@@ -45,7 +45,8 @@ not a full-fledged chess computer. Instead of a chess engine, it includes dozens
 of chess problems for the user to solve. Novag Super System TV Interface was
 included with the system, it's attached by default in MAME.
 
-Conceptualized by Noblet S.A. (Novag's distributor in France at the time).
+Conceptualized by Noblet S.A. (Novag's distributor in France at the time). It
+was programmed by Wayne Chow, not David Kittinger.
 
 Hardware notes:
 - PCB label: 100173 REV A

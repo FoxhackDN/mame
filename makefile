@@ -1135,11 +1135,22 @@ ifdef MSBUILD
 	$(SILENT) msbuild.exe $(PROJECTDIR_WIN)/vs2022-clang/$(PROJECT_NAME).sln $(MSBUILD_PARAMS)
 endif
 
-.PHONY: vs2022_intel
-vs2022_intel: generate
-	$(SILENT) $(GENIE) $(PARAMS) $(TARGET_PARAMS) --vs=intel-15 vs2022
+#-------------------------------------------------
+# Visual Studio 2026
+#-------------------------------------------------
+
+.PHONY: vs2026
+vs2026: generate
+	$(SILENT) $(GENIE) $(PARAMS) $(TARGET_PARAMS) vs2026
 ifdef MSBUILD
-	$(SILENT) msbuild.exe $(PROJECTDIR_WIN)/vs2022-intel/$(PROJECT_NAME).sln $(MSBUILD_PARAMS)
+	$(SILENT) msbuild.exe $(PROJECTDIR_WIN)/vs2026/$(PROJECT_NAME).sln $(MSBUILD_PARAMS)
+endif
+
+.PHONY: vs2026_clang
+vs2026_clang: generate
+	$(SILENT) $(GENIE) $(PARAMS) $(TARGET_PARAMS) --vs=clangcl vs2026
+ifdef MSBUILD
+	$(SILENT) msbuild.exe $(PROJECTDIR_WIN)/vs2026-clang/$(PROJECT_NAME).sln $(MSBUILD_PARAMS)
 endif
 
 #-------------------------------------------------
