@@ -597,6 +597,11 @@ s3000xl
 cd3000i
 cd3000xl
 
+@source:akai/x7000.cpp
+s612
+s700
+x7000
+
 @source:alesis/alesis.cpp
 hr16
 hr16b
@@ -16813,6 +16818,9 @@ ctk551
 ctk601
 gz70sp
 
+@source:casio/ctrc1.cpp
+ctrc1
+
 @source:casio/cz1.cpp
 cz1
 mz1
@@ -21404,6 +21412,7 @@ jkrmast
 jkrmasta
 jkrmastb
 jkrmastc
+jkrmastd
 jpknight
 kkotnoli
 ladylinr
@@ -26099,13 +26108,15 @@ viostormubbl
 
 @source:konami/nemesis.cpp
 blkpnthr
+bs_gradius
+bs_gwarrior
+bs_rf2
+bs_twinbee
 bubsys
 citybomb
 citybombj
 gradius
-gradiusb
 gwarrior
-gwarriorb
 hcrash
 hcrashc
 kittenk
@@ -26116,12 +26127,10 @@ nemesis
 nemesisuk
 nyanpani
 rf2
-rf2b
 salamand
 salamandj
 salamandt
 twinbee
-twinbeeb
 
 @source:konami/nwk-tr.cpp
 racingj
@@ -42301,6 +42310,7 @@ verbena
 wantsega
 
 @source:sega/winclub.cpp
+wcwroses
 wwmspot
 
 @source:sega/y2.cpp
@@ -43616,6 +43626,9 @@ fs3216
 @source:skeleton/ft68m.cpp
 ft68m
 
+@source:skeleton/galpro.cpp
+galpro
+
 @source:skeleton/gamebox.cpp
 gamebox
 
@@ -43743,7 +43756,10 @@ kron180
 
 @source:skeleton/lanmao.cpp
 daolang
+fuxingg
 gongfuxm
+hgege
+hgegea
 lanmao
 ljian
 lzhudie
