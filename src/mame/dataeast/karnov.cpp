@@ -860,8 +860,8 @@ ROM_START( karnov ) // DE-0248-3 main board, DE-259-0 sub/rom board
 	ROM_REGION( 0x10000, "audiocpu", 0 ) // 6502 Sound CPU
 	ROM_LOAD( "dn05-5.f3", 0x8000, 0x8000, CRC(fa1a31a8) SHA1(5007a625be03c546d2a78444d72c28761b10cdb0) )
 
-	ROM_REGION( 0x1000, "mcu", 0 ) // i8751 MCU (Note: Dump taken from a Rev 5 board)
-	ROM_LOAD( "dn-5.k14", 0x0000, 0x1000, CRC(d056de4e) SHA1(621587ed949ff46e5ccb0d0603612655a38b69a3) ) // 5 is handwritten
+	ROM_REGION( 0x1000, "mcu", 0 ) // i8751 MCU (DN-5 verified correct for rev -6 program ROMs)
+	ROM_LOAD( "dn-5.k14", 0x0000, 0x1000, CRC(d056de4e) SHA1(621587ed949ff46e5ccb0d0603612655a38b69a3) ) // 5 is handwritten. Dump confirmed by 2 decaps
 
 	ROM_REGION( 0x08000, "char", 0 )
 	ROM_LOAD( "dn00-.c5", 0x00000, 0x08000, CRC(0ed77c6d) SHA1(4ec86ac56c01c158a580dc13dea3e5cbdf90d0e9) )
@@ -899,8 +899,8 @@ ROM_START( karnova ) // DE-0248-3 main board, DE-259-0 sub/rom board
 	ROM_REGION( 0x10000, "audiocpu", 0 ) // 6502 Sound CPU
 	ROM_LOAD( "dn05-5.f3", 0x8000, 0x8000, CRC(fa1a31a8) SHA1(5007a625be03c546d2a78444d72c28761b10cdb0) )
 
-	ROM_REGION( 0x1000, "mcu", 0 ) // i8751 MCU
-	ROM_LOAD( "dn-5.k14", 0x0000, 0x1000, CRC(d056de4e) SHA1(621587ed949ff46e5ccb0d0603612655a38b69a3) ) // 5 is handwritten
+	ROM_REGION( 0x1000, "mcu", 0 ) // i8751 MCU (MCU will be labeled DN-5E when program ROMs have 5E labels)
+	ROM_LOAD( "dn-5.k14", 0x0000, 0x1000, CRC(d056de4e) SHA1(621587ed949ff46e5ccb0d0603612655a38b69a3) ) // 5 is handwritten. Dump confirmed by 2 decaps
 
 	ROM_REGION( 0x08000, "char", 0 )
 	ROM_LOAD( "dn00-.c5", 0x00000, 0x08000, CRC(0ed77c6d) SHA1(4ec86ac56c01c158a580dc13dea3e5cbdf90d0e9) )
