@@ -657,7 +657,7 @@ void mc88100_device::execute(u32 const inst)
 			{
 				unsigned const offset = inst & 31;
 
-				m_r[D] = rotr_32(m_r[S1], offset);
+				m_r[D] = std::rotr(m_r[S1], offset);
 			}
 			break;
 
@@ -796,27 +796,26 @@ void mc88100_device::execute(u32 const inst)
 				u32 const data = m_r[S1] + ~m_r[S2] + 1;
 
 				// compute borrow out
-				if (data < m_r[S1])
-					m_cr[PSR] |= PSR_C;
-				else
+				if (m_r[S1] < m_r[S2])
 					m_cr[PSR] &= ~PSR_C;
+				else
+					m_cr[PSR] |= PSR_C;
 
 				m_r[D] = data;
 			}
 			break;
 		case 0x330: // subu.ci: unsigned integer subtract with borrow in (register)
-			m_r[D] = m_r[S1] + ~m_r[S2] + !bool(m_cr[PSR] & PSR_C);
+			m_r[D] = m_r[S1] + ~m_r[S2] + bool(m_cr[PSR] & PSR_C);
 			break;
 		case 0x338: // subu.cio: unsigned integer subtract with borrow in and out (register)
 			{
-				u32 const sum1 = m_r[S1] + ~m_r[S2];
-				u32 const data = sum1 + !bool(m_cr[PSR] & PSR_C);
+				u32 const data = m_r[S1] + ~m_r[S2] + bool(m_cr[PSR] & PSR_C);
 
 				// compute borrow out
-				if (sum1 < m_r[S1] || data < sum1)
-					m_cr[PSR] |= PSR_C;
-				else
+				if (m_r[S1] < m_r[S2] || (m_r[S1] == m_r[S2] && data))
 					m_cr[PSR] &= ~PSR_C;
+				else
+					m_cr[PSR] |= PSR_C;
 
 				m_r[D] = data;
 			}
@@ -902,36 +901,63 @@ void mc88100_device::execute(u32 const inst)
 			}
 			break;
 		case 0x3a0: // sub: integer subtract (register)
-			m_r[D] = m_r[S1] + ~m_r[S2] + 1;
+			{
+				u32 const data = m_r[S1] + ~m_r[S2] + 1;
+
+				// check overflow
+				if (BIT(~(m_r[S1] ^ m_r[S2]) | ~(m_r[S1] ^ data), 31))
+					m_r[D] = data;
+				else
+					exception(E_INT_OVERFLOW);
+			}
 			break;
 		case 0x3a8: // sub.co: integer subtract with borrow out (register)
 			{
 				u32 const data = m_r[S1] + ~m_r[S2] + 1;
 
-				// compute borrow out
-				if (data < m_r[S1])
-					m_cr[PSR] |= PSR_C;
-				else
-					m_cr[PSR] &= ~PSR_C;
+				// check overflow
+				if (BIT(~(m_r[S1] ^ m_r[S2]) | ~(m_r[S1] ^ data), 31))
+				{
+					// compute borrow out
+					if (m_r[S1] < m_r[S2])
+						m_cr[PSR] &= ~PSR_C;
+					else
+						m_cr[PSR] |= PSR_C;
 
-				m_r[D] = data;
+					m_r[D] = data;
+				}
+				else
+					exception(E_INT_OVERFLOW);
 			}
 			break;
 		case 0x3b0: // sub.ci: integer subtract with borrow in (register)
-			m_r[D] = m_r[S1] + ~m_r[S2] + !bool(m_cr[PSR] & PSR_C);
+			{
+				u32 const data = m_r[S1] + ~m_r[S2] + bool(m_cr[PSR] & PSR_C);
+
+				// check overflow
+				if (BIT(~(m_r[S1] ^ m_r[S2]) | ~(m_r[S1] ^ data), 31))
+					m_r[D] = data;
+				else
+					exception(E_INT_OVERFLOW);
+			}
 			break;
 		case 0x3b8: // sub.cio: integer subtract with borrow in and out (register)
 			{
-				u32 const sum1 = m_r[S1] + ~m_r[S2];
-				u32 const data = sum1 + !bool(m_cr[PSR] & PSR_C);
+				u32 const data = m_r[S1] + ~m_r[S2] + bool(m_cr[PSR] & PSR_C);
 
-				// compute borrow out
-				if (sum1 < m_r[S1] || data < sum1)
-					m_cr[PSR] |= PSR_C;
+				// check overflow
+				if (BIT(~(m_r[S1] ^ m_r[S2]) | ~(m_r[S1] ^ data), 31))
+				{
+					// compute borrow out
+					if (m_r[S1] < m_r[S2] || (m_r[S1] == m_r[S2] && data))
+						m_cr[PSR] &= ~PSR_C;
+					else
+						m_cr[PSR] |= PSR_C;
+
+					m_r[D] = data;
+				}
 				else
-					m_cr[PSR] &= ~PSR_C;
-
-				m_r[D] = data;
+					exception(E_INT_OVERFLOW);
 			}
 			break;
 		case 0x3c0: // div: signed integer divide (register)
@@ -1002,7 +1028,7 @@ void mc88100_device::execute(u32 const inst)
 			}
 			break;
 		case 0x540: // rot: rotate (register)
-			m_r[D] = rotr_32(m_r[S1], m_r[S2]);
+			m_r[D] = std::rotr(m_r[S1], m_r[S2]);
 			break;
 		case 0x740: // ff1: find first bit set
 			{
@@ -1537,7 +1563,7 @@ void mc88100_device::fetch(u32 &address, u32 &inst)
 		inst = m_code_space.read_dword(address & IP_A);
 }
 
-template <typename T, bool Usr> void mc88100_device::ld(u32 address, unsigned const reg)
+template <typename T, bool Usr> void mc88100_device::ld(offs_t address, unsigned const reg)
 {
 	// alignment check
 	if (address & (sizeof(T) - 1))
@@ -1658,7 +1684,7 @@ template <typename T, bool Usr> void mc88100_device::ld(u32 address, unsigned co
 	}
 }
 
-template <typename T, bool Usr> void mc88100_device::st(u32 address, unsigned const reg)
+template <typename T, bool Usr> void mc88100_device::st(offs_t address, unsigned const reg)
 {
 	// alignment check
 	if (address & (sizeof(T) - 1))
@@ -1748,13 +1774,17 @@ template <typename T, bool Usr> void mc88100_device::st(u32 address, unsigned co
 	}
 }
 
-template <typename T, bool Usr> void mc88100_device::xmem(u32 address, unsigned const reg)
+template <typename T, bool Usr> void mc88100_device::xmem(offs_t address, unsigned const reg)
 {
 	// alignment check
 	if (address & (sizeof(T) - 1))
 	{
 		if (!(m_cr[PSR] & PSR_MXM))
+		{
 			exception(E_MISALIGNED);
+
+			return;
+		}
 		else
 			address &= ~(sizeof(T) - 1);
 	}
@@ -1765,7 +1795,7 @@ template <typename T, bool Usr> void mc88100_device::xmem(u32 address, unsigned 
 	if (m_cmmu_data)
 	{
 		// read destination
-		std::optional<T> const dst = m_cmmu_data(address).read<T>(address, (m_cr[PSR] & PSR_MODE) && !Usr);
+		std::optional<T> const dst = m_cmmu_data(address).read<T>(address, (m_cr[PSR] & PSR_MODE) && !Usr, true);
 		if (dst.has_value())
 		{
 			// update register
@@ -1773,7 +1803,7 @@ template <typename T, bool Usr> void mc88100_device::xmem(u32 address, unsigned 
 				m_r[reg] = dst.value();
 
 			// write destination
-			if (m_cmmu_data(address).write<T>(address, src, (m_cr[PSR] & PSR_MODE) && !Usr))
+			if (m_cmmu_data(address).write<T>(address, src, (m_cr[PSR] & PSR_MODE) && !Usr, true))
 				return;
 		}
 
